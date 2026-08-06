@@ -3,6 +3,12 @@ name: Release docker-dev
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Existing tag to publish, for example v0.1.0'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -12,21 +18,25 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version || github.ref }}
 
       - name: Validate shell scripts
         run: find . -type f -name '*.sh' -not -path './.git/*' -print0 | xargs -0 -n1 bash -n
 
       - name: Package release
-        run: scripts/package-release.sh "$GITHUB_REF_NAME" "$RUNNER_TEMP/dist"
+        run: scripts/package-release.sh "$RELEASE_VERSION" "$RUNNER_TEMP/dist"
 
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" "$RUNNER_TEMP"/dist/* --verify-tag --generate-notes
+        run: gh release create "$RELEASE_VERSION" "$RUNNER_TEMP"/dist/* --verify-tag --generate-notes
 
       - name: Attest release archive provenance
         uses: actions/attest@v4
         with:
-          subject-path: ${{ runner.temp }}/dist/docker-dev-${{ github.ref_name }}.tar.gz
+          subject-path: ${{ runner.temp }}/dist/docker-dev-${{ env.RELEASE_VERSION }}.tar.gz

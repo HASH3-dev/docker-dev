@@ -18,8 +18,8 @@ Baixe uma release específica do kit, valide o pacote e instale-o na pasta atual
 
 ```bash
 curl -fL -o docker-dev-init.sh \
-  https://raw.githubusercontent.com/HASH3-dev/docker-dev/v1.0.0/scripts/docker-dev-init.sh
-bash docker-dev-init.sh --version v1.0.0
+  https://raw.githubusercontent.com/HASH3-dev/docker-dev/v0.1.0/scripts/docker-dev-init.sh
+bash docker-dev-init.sh --version v0.1.0
 rm docker-dev-init.sh
 ```
 
