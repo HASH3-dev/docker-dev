@@ -12,6 +12,21 @@ no container.
 O diretório `.docker-dev` é portátil: copie-o para a raiz de outro projeto e
 execute os mesmos comandos.
 
+## Instalar em outro projeto
+
+Baixe uma release específica do kit, valide o pacote e instale-o na pasta atual:
+
+```bash
+curl -fL -o docker-dev-init.sh \
+  https://raw.githubusercontent.com/HASH3-dev/docker-dev/v1.0.0/scripts/docker-dev-init.sh
+bash docker-dev-init.sh --version v1.0.0
+rm docker-dev-init.sh
+```
+
+O bootstrap recusa substituir uma pasta `.docker-dev` existente, exceto com
+`--force`, e valida o SHA-256 publicado junto à release. Em seguida, execute
+`./.docker-dev/dev.sh setup`. Use sempre uma tag específica, nunca `main`.
+
 ## Começo rápido
 
 Na raiz do projeto, execute:
