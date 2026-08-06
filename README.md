@@ -17,9 +17,11 @@ execute os mesmos comandos.
 Baixe uma release específica do kit, valide o pacote e instale-o na pasta atual:
 
 ```bash
+VERSION=v0.1.1
+
 curl -fL -o docker-dev-init.sh \
-  https://raw.githubusercontent.com/HASH3-dev/docker-dev/v0.1.0/scripts/docker-dev-init.sh
-bash docker-dev-init.sh --version v0.1.0
+  "https://raw.githubusercontent.com/HASH3-dev/docker-dev/${VERSION}/scripts/docker-dev-init.sh"
+bash docker-dev-init.sh --version "$VERSION"
 rm docker-dev-init.sh
 ```
 
