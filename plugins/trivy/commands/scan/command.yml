@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=../../../../schemas/command.schema.json
+schema: docker-dev/command/v1
+name: scan
+usage: "scan [path]"
+summary: "Scan a project path with the Trivy plugin."
+help: |
+  Usage: ./.docker-dev/dev.sh scan [path]
+
+  Runs the generic Trivy gate in the development container. The default path is
+  the project root. The Trivy plugin must be listed in .docker-dev/plugins.enabled.
+steps:
+  - call:
+      function: scan_trivy_path

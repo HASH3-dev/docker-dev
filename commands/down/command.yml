@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=../../schemas/command.schema.json
+schema: docker-dev/command/v1
+name: down
+usage: "down"
+summary: "Stop containers while preserving dependencies and caches."
+help: |
+  Usage: ./.docker-dev/dev.sh down
+steps:
+  - call:
+      function: require_no_arguments
+  - call:
+      function: compose
+      args: [down]

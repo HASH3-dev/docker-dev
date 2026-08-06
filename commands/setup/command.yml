@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=../../schemas/command.schema.json
+schema: docker-dev/command/v1
+name: setup
+usage: "setup"
+summary: "Configure direnv, project files, plugins and the development container."
+help: |
+  Usage: ./.docker-dev/dev.sh setup
+
+  With explicit confirmation, installs and configures direnv when needed, creates
+  or reuses the local .envrc entrypoint, lets you choose controlled plugins,
+  configures ports and .tool-versions, and builds the selected plugins.
+steps:
+  - call:
+      function: require_no_arguments
+  - call:
+      function: prepare_setup
+  - call:
+      function: configure_ports
+  - call:
+      function: configure_tool_versions
+  - call:
+      function: install_direnv
+  - call:
+      function: enable_direnv_hook
+  - call:
+      function: ensure_envrc_ignored
+  - call:
+      function: require_docker_compose
+  - call:
+      function: ensure_managed_envrc
+  - call:
+      function: rebuild_environment
+  - call:
+      function: show_setup_complete
+  - call:
+      function: restart_shell_after_setup

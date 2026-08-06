@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly docker_dev_dir="$(cd -- "$script_dir/../../../../../" && pwd)"
+readonly project_root="$(cd -- "$docker_dev_dir/.." && pwd)"
+readonly caller_dir="$(pwd -P)"
+
+case "$caller_dir" in
+  "$project_root") relative_path='.' ;;
+  "$project_root"/*) relative_path="${caller_dir#"$project_root"/}" ;;
+  *) echo "This Yarn wrapper only runs from ${project_root} or one of its subdirectories." >&2; exit 2 ;;
+esac
+
+exec "$docker_dev_dir/dev.sh" yarn "$relative_path" "$@"

@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=../../../../../../schemas/command.schema.json
+schema: docker-dev/command/v1
+name: install
+usage: "install"
+summary: "Force dependency synchronization through the protected package manager."
+help: |
+  Usage: ./.docker-dev/dev.sh install
+steps:
+  - call:
+      function: require_no_arguments
+  - call:
+      function: start
+  - call:
+      function: exec_in_dev
+      args: [--no-TTY, dev, /usr/local/bin/bootstrap-deps, --force]

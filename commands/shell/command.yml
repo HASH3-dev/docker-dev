@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=../../schemas/command.schema.json
+schema: docker-dev/command/v1
+name: shell
+usage: "shell [--merge-compose [--file <compose-file>]]"
+summary: "Alias for up."
+help: |
+  Usage: ./.docker-dev/dev.sh shell [--merge-compose [--file <compose-file>]]
+steps:
+  - call:
+      function: run_up_alias

@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=../../../../schemas/subplugin.schema.json
+schema: docker-dev/subplugin/v1
+name: pnpm
+kind: package-manager-adapter
+summary: "Protects pnpm dependency installation with the Trivy gate."
+commands_directory: commands
+container_wrappers:
+  - pnpm
+host_wrappers:
+  - pnpm

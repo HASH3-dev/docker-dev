@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=../../schemas/command.schema.json
+schema: docker-dev/command/v1
+name: up
+usage: "up [--merge-compose [--file <compose-file>]]"
+summary: "Start the development shell, optionally with project infrastructure."
+help: |
+  Usage: ./.docker-dev/dev.sh up [--merge-compose [--file <compose-file>]]
+
+  Starts only the persistent development container and opens a Bash shell.
+  Use --merge-compose to also start the project's Compose infrastructure. Without
+  --file, a conventional Compose file is discovered at the project root.
+steps:
+  - call:
+      function: configure_up_compose
+      args: ["$@"]
+  - call:
+      function: start
+  - call:
+      function: exec_in_dev
+      args: [dev, bash]

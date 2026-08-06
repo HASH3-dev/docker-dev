@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=../../../../../../schemas/command.schema.json
+schema: docker-dev/command/v1
+name: npm
+usage: "npm <project-relative-path> <npm-arguments...>"
+summary: "Run the protected npm wrapper in the development container."
+help: |
+  Usage: ./.docker-dev/dev.sh npm <project-relative-path> <npm-arguments...>
+steps:
+  - call:
+      function: run_npm_wrapper

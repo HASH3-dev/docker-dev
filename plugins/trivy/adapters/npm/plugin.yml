@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=../../../../schemas/subplugin.schema.json
+schema: docker-dev/subplugin/v1
+name: npm
+kind: package-manager-adapter
+summary: "Protects npm dependency installation with the Trivy gate."
+commands_directory: commands
+container_wrappers:
+  - npm
+host_wrappers:
+  - npm
