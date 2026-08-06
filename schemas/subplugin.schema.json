@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docker-dev.local/schemas/subplugin.schema.json",
+  "title": "docker-dev subplugin",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "name", "kind", "summary"],
+  "properties": {
+    "schema": { "const": "docker-dev/subplugin/v1" },
+    "name": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "kind": { "type": "string", "minLength": 1 },
+    "summary": { "type": "string", "minLength": 1 },
+    "image_install": { "type": "string", "pattern": "^[A-Za-z0-9._/-]+$" },
+    "commands_directory": { "type": "string", "pattern": "^[A-Za-z0-9._/-]+$" },
+    "container_wrappers": { "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" }, "uniqueItems": true },
+    "host_wrappers": { "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" }, "uniqueItems": true },
+    "hooks": { "type": "object", "additionalProperties": { "type": "string", "pattern": "^[A-Za-z0-9._/-]+$" } }
+  }
+}

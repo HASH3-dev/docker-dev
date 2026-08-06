@@ -1,0 +1,39 @@
+services:
+  dev:
+    image: ${DOCKER_DEV_IMAGE:?DOCKER_DEV_IMAGE must be set by dev.sh}
+    build:
+      # These are absolute host paths supplied by dev.sh. They must not depend
+      # on the first Compose file, because an application compose file may be
+      # merged before this one.
+      context: ${DOCKER_DEV_DIR:?DOCKER_DEV_DIR must be set by dev.sh}
+      dockerfile: Dockerfile
+      args:
+        DOCKER_DEV_PLUGINS: ${DOCKER_DEV_PLUGINS:-}
+    # Keep only a development shell available. Applications are started by the
+    # developer explicitly from an attached terminal.
+    command: ["sleep", "infinity"]
+    init: true
+    working_dir: /workspace
+    environment:
+      HOME: /home/dev
+      ASDF_DATA_DIR: /asdf
+      NPM_CONFIG_CACHE: /npm-cache
+      LOCAL_UID: ${LOCAL_UID:-1000}
+      LOCAL_GID: ${LOCAL_GID:-1000}
+      TRIVY_SEVERITY: ${TRIVY_SEVERITY:-HIGH,CRITICAL}
+    volumes:
+      - ${DOCKER_DEV_PROJECT_ROOT:?DOCKER_DEV_PROJECT_ROOT must be set by dev.sh}:/workspace
+      # Keep Linux-native dependencies and tool caches out of the host checkout.
+      - node_modules:/workspace/node_modules
+      - npm_cache:/npm-cache
+      - dev_home:/home/dev
+      # Plugins, runtimes and shims installed through asdf survive rebuilds.
+      - asdf_data:/asdf
+    stdin_open: true
+    tty: true
+
+volumes:
+  node_modules:
+  npm_cache:
+  dev_home:
+  asdf_data:

@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=../../../../../../schemas/command.schema.json
+schema: docker-dev/command/v1
+name: pnpm
+usage: "pnpm <project-relative-path> <pnpm-arguments...>"
+summary: "Run the protected pnpm wrapper in the development container."
+help: |
+  Usage: ./.docker-dev/dev.sh pnpm <project-relative-path> <pnpm-arguments...>
+steps:
+  - call:
+      function: run_pnpm_wrapper

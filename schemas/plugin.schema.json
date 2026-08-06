@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docker-dev.local/schemas/plugin.schema.json",
+  "title": "docker-dev plugin",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "name", "kind", "summary"],
+  "properties": {
+    "schema": { "const": "docker-dev/plugin/v1" },
+    "name": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "kind": { "type": "string", "minLength": 1 },
+    "summary": { "type": "string", "minLength": 1 },
+    "image_install": { "type": "string", "pattern": "^[A-Za-z0-9._/-]+$" },
+    "plugins_path": { "type": "string", "pattern": "^[A-Za-z0-9._/-]+$" },
+    "plugins_enabled_file": { "type": "string", "pattern": "^[A-Za-z0-9._/-]+$" },
+    "commands_directory": { "type": "string", "pattern": "^[A-Za-z0-9._/-]+$" },
+    "hooks": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "pattern": "^[A-Za-z0-9._/-]+$" }
+    }
+  }
+}

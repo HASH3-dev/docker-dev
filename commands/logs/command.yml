@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=../../schemas/command.schema.json
+schema: docker-dev/command/v1
+name: logs
+usage: "logs"
+summary: "Follow logs from the development container."
+help: |
+  Usage: ./.docker-dev/dev.sh logs
+steps:
+  - call:
+      function: require_no_arguments
+  - call:
+      function: compose
+      args: [logs, --follow]

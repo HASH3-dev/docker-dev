@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=../../../../schemas/subplugin.schema.json
+schema: docker-dev/subplugin/v1
+name: yarn
+kind: package-manager-adapter
+summary: "Protects Yarn dependency installation with the Trivy gate."
+commands_directory: commands
+container_wrappers:
+  - yarn
+host_wrappers:
+  - yarn

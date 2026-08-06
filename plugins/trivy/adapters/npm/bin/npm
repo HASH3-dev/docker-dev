@@ -1,0 +1,149 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Keep the mandatory wrapper first in PATH. Node is deliberately not part of
+# the base image: after the developer installs it through asdf, call its real
+# npm binary directly underneath this wrapper to avoid recursion.
+run_npm() {
+  local npm_binary
+  npm_binary="$(asdf which npm 2>/dev/null || true)"
+  if [[ -n "$npm_binary" && -x "$npm_binary" ]]; then
+    "$npm_binary" "$@"
+    return
+  fi
+
+  echo 'npm is unavailable. Install and select Node with asdf first.' >&2
+  echo 'Example: asdf plugin add nodejs && asdf install nodejs latest && asdf set nodejs latest' >&2
+  return 127
+}
+
+copy_manifests() {
+  local source_dir="$1"
+  local target_dir="$2"
+  local manifest
+  local workspace_pattern
+  local workspace_manifest
+  local relative_path
+
+  for manifest in package.json package-lock.json npm-shrinkwrap.json; do
+    [[ -f "$source_dir/$manifest" ]] && cp "$source_dir/$manifest" "$target_dir/$manifest"
+  done
+
+  [[ -f "$source_dir/package.json" ]] || return 0
+  while IFS= read -r -d '' workspace_pattern; do
+    while IFS= read -r workspace_manifest; do
+      relative_path="${workspace_manifest#"$source_dir"/}"
+      mkdir -p "$target_dir/$(dirname "$relative_path")"
+      cp "$workspace_manifest" "$target_dir/$relative_path"
+    done < <(compgen -G "$source_dir/$workspace_pattern/package.json" || true)
+  done < <(
+    node -e '
+      const manifest = require(process.argv[1]);
+      const workspaces = Array.isArray(manifest.workspaces)
+        ? manifest.workspaces
+        : manifest.workspaces?.packages || [];
+      for (const workspace of workspaces) process.stdout.write(`${workspace}\0`);
+    ' "$source_dir/package.json"
+  )
+}
+
+has_package_spec() {
+  local argument
+  for argument in "$@"; do
+    # A package spec never starts with a dash. This intentionally treats an
+    # option value as a package only when npm itself would accept it as one.
+    [[ "$argument" != -* ]] && return 0
+  done
+  return 1
+}
+
+copy_active_tool_versions() {
+  local search_dir="$PWD"
+
+  # npm's temporary dependency-resolution directory lives under /tmp. Copy the
+  # closest project tool declaration so the Node asdf shim used by npm's
+  # shebang keeps resolving the same runtime there.
+  while [[ "$search_dir" == /workspace || "$search_dir" == /workspace/* ]]; do
+    if [[ -f "$search_dir/.tool-versions" ]]; then
+      cp "$search_dir/.tool-versions" "$1/.tool-versions"
+      return 0
+    fi
+    [[ "$search_dir" == /workspace ]] && break
+    search_dir="$(dirname "$search_dir")"
+  done
+}
+
+scan_lockfile() {
+  local lockfile="$1"
+  docker-dev-trivy-gate scan-lock "$lockfile"
+}
+
+scan_install() {
+  local workspace_root
+  local temporary_root
+  local scan_status=0
+  local argument
+  local -a resolution_args=()
+
+  workspace_root="$(run_npm prefix)"
+  temporary_root="$(mktemp -d)"
+  copy_active_tool_versions "$temporary_root"
+
+  if has_package_spec "$@"; then
+    # This deliberately starts from an empty project. Trivy therefore sees the
+    # requested package and its transitive tree, not unrelated existing deps.
+    printf '{"name":"dependency-security-check","version":"0.0.0","private":true}\n' > "$temporary_root/package.json"
+  else
+    # `npm install` after a manual manifest edit must still be gated.
+    copy_manifests "$workspace_root" "$temporary_root"
+  fi
+
+  # The real install may intentionally use --no-save. The security-resolution
+  # phase must still produce a lockfile, so omit only flags that suppress it.
+  for argument in "$@"; do
+    case "$argument" in
+      --no-save|--no-package-lock|--package-lock=false) ;;
+      *) resolution_args+=("$argument") ;;
+    esac
+  done
+
+  (
+    cd "$temporary_root"
+    run_npm install --package-lock-only --package-lock=true --ignore-scripts "${resolution_args[@]}"
+    scan_lockfile "$temporary_root/package-lock.json"
+  ) || scan_status=$?
+
+  rm -rf "$temporary_root"
+  return "$scan_status"
+}
+
+scan_existing_lock() {
+  local workspace_root
+  workspace_root="$(run_npm prefix)"
+  if [[ -f "$workspace_root/package-lock.json" || -f "$workspace_root/npm-shrinkwrap.json" ]]; then
+    scan_lockfile "${workspace_root}/$( [[ -f "$workspace_root/npm-shrinkwrap.json" ]] && echo npm-shrinkwrap.json || echo package-lock.json )"
+  else
+    echo 'Security gate: no npm lockfile exists; refusing an unpinned npm ci.' >&2
+    return 1
+  fi
+}
+
+case "${1:-}" in
+  install|i)
+    shift
+    scan_install "$@"
+    run_npm install "$@"
+    ;;
+  ci)
+    scan_existing_lock
+    run_npm ci "${@:2}"
+    ;;
+  update|up)
+    shift
+    scan_install "$@"
+    run_npm update "$@"
+    ;;
+  *)
+    run_npm "$@"
+    ;;
+esac

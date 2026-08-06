@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=../../../../../../schemas/command.schema.json
+schema: docker-dev/command/v1
+name: uv
+usage: "uv <project-relative-path> <uv-arguments...>"
+summary: "Run the protected uv wrapper in the development container."
+help: |
+  Usage: ./.docker-dev/dev.sh uv <project-relative-path> <uv-arguments...>
+steps:
+  - call:
+      function: run_uv_wrapper

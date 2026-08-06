@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly trivy_severity="${TRIVY_SEVERITY:-HIGH,CRITICAL}"
+
+scan_target() {
+  local target="$1"
+  [[ -e "$target" ]] || { echo "Trivy gate target not found: $target" >&2; return 2; }
+  echo "Security gate: scanning with Trivy (${trivy_severity})..." >&2
+  trivy fs --quiet --scanners vuln --severity "$trivy_severity" --exit-code 1 "$target"
+}
+
+usage() {
+  cat <<'EOF'
+Usage: docker-dev-trivy-gate <scan-lock|scan-path> <path>
+
+Adapter contract:
+  - generate a temporary, fully resolved lockfile without running package scripts;
+  - invoke `scan-lock <lockfile>` before the real package installation;
+  - stop when this command exits non-zero.
+EOF
+}
+
+case "${1:-}" in
+  scan-lock|scan-path)
+    [[ $# -eq 2 ]] || { usage >&2; exit 2; }
+    scan_target "$2"
+    ;;
+  --help|-h|help) usage ;;
+  *) usage >&2; exit 2 ;;
+esac

@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=../../schemas/command.schema.json
+schema: docker-dev/command/v1
+name: teardown
+usage: "teardown"
+summary: "Remove docker-dev repository configuration and its container resources."
+help: |
+  Usage: ./.docker-dev/dev.sh teardown
+
+  Fully resets docker-dev: it stops and removes its container, image, network,
+  named volumes, runtimes and caches, then removes the managed .envrc symlink, its
+  managed .gitignore rule, and .tool-versions only when setup created that file
+  and it has not changed since. It also removes the cached yq binary. direnv,
+  the .docker-dev folder and infrastructure started through --merge-compose are
+  preserved.
+steps:
+  - call:
+      function: require_no_arguments
+  - call:
+      function: teardown_environment

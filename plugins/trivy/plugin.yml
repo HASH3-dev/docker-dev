@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=../../schemas/plugin.schema.json
+schema: docker-dev/plugin/v1
+name: trivy
+kind: security-gate
+summary: "Provides vulnerability scanning for package-manager adapters."
+image_install: image-install.sh
+plugins_path: adapters
+commands_directory: commands
+hooks:
+  post-asdf: hooks/post-asdf.sh
