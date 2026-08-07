@@ -1,5 +1,10 @@
 # docker-dev
 
+[![version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FHASH3-dev%2Fdocker-dev%2Fmain%2Fpackage.json&query=%24.version&prefix=v&label=version)](https://github.com/HASH3-dev/docker-dev/blob/main/package.json)
+[![latest release](https://img.shields.io/github/v/release/HASH3-dev/docker-dev?label=release)](https://github.com/HASH3-dev/docker-dev/releases)
+[![platform](https://img.shields.io/badge/platform-linux%20%7C%20macos%20%7C%20wsl2-blue)](#requisitos)
+[![license](https://img.shields.io/github/license/HASH3-dev/docker-dev)](./LICENSE)
+
 `docker-dev` cria um ambiente de desenvolvimento reproduzível em Docker, sem
 acoplar o projeto a uma linguagem específica. Ele instala os runtimes definidos
 em `.tool-versions` com asdf, permite habilitar plugins recursivamente e mantém
@@ -7,6 +12,7 @@ o código-fonte montado em `/workspace`.
 
 ## Requisitos
 
+- Linux ou macOS. No Windows, o suporte é somente via **WSL 2**
 - Docker com o plugin Docker Compose (`docker compose`)
 - Um executável `docker-dev` no `PATH` ou disponível por caminho absoluto
 
@@ -16,29 +22,31 @@ criar o `.envrc` do projeto.
 
 ## Instalação
 
-Baixe o binário correspondente ao seu sistema na pasta `dist/` de uma release
-ou gere-o a partir do código-fonte:
+Na raiz do projeto que vai usar o `docker-dev`, execute:
 
 ```bash
-bun install
-bun run build
+curl -fsSL https://raw.githubusercontent.com/HASH3-dev/docker-dev/main/scripts/install.sh | bash
 ```
 
-Depois, disponibilize `dist/docker-dev` no seu `PATH` ou execute-o diretamente.
-Os binários multiplataforma podem ser gerados com `bun run build:all`.
+O script detecta o sistema operacional (Linux ou macOS) e a arquitetura,
+baixa o binário da versão correta e o salva como `./docker-dev` no diretório
+atual, adicionando-o ao `.gitignore`.
 
-## Publicar uma versão
+A versão baixada segue esta ordem de prioridade:
 
-Com a árvore Git limpa e o remoto `origin` configurado, execute:
+1. versão passada como argumento ao script;
+2. versão já fixada em `.docker-dev-version`, se o arquivo existir;
+3. versão mais recente publicada em `package.json` no repositório.
+
+Ao usar um argumento ou ao resolver a versão a partir do repositório, o
+script grava/atualiza `.docker-dev-version` no diretório atual — **versione
+esse arquivo** para que todo o time instale sempre a mesma versão:
 
 ```bash
-bun run release
+curl -fsSL https://raw.githubusercontent.com/HASH3-dev/docker-dev/main/scripts/install.sh | bash -s -- 0.2.0
 ```
 
-O comando mostra a versão atual, solicita a nova versão SemVer, atualiza
-`package.json`, cria o commit de release, cria a tag anotada `v<versão>` e envia
-o commit e a tag ao GitHub. A tag aciona o workflow de release, que anexa os
-binários à GitHub Release.
+No Windows, execute o comando acima dentro do WSL 2.
 
 ## Primeiro uso
 

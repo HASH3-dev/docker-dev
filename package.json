@@ -1,6 +1,7 @@
 {
-  "name": "docker-dev-2",
+  "name": "docker-dev",
   "version": "0.2.0",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "bin": {
