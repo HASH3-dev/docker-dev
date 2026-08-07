@@ -1,0 +1,18 @@
+{
+  "$schema": "../../schemas/command.schema.json",
+  "name": "teardown",
+  "summary": "Remove docker-dev configuration and resources.",
+  "help": "Remove managed repository configuration and Docker resources.",
+  "steps": [
+    {
+      "call": {
+        "function": "requireSetup"
+      }
+    },
+    {
+      "call": {
+        "function": "teardown"
+      }
+    }
+  ]
+}

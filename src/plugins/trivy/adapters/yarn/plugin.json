@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../../schemas/plugin.schema.json",
+  "name": "yarn",
+  "kind": "package-manager-adapter",
+  "summary": "Protects Yarn dependency installation with the Trivy gate.",
+  "requiresRuntimes": ["nodejs"],
+  "detect": {
+    "files": ["package.json", "yarn.lock", ".yarnrc.yml"]
+  },
+  "container": {
+    "volumes": [{ "name": "node_modules", "target": "/workspace/node_modules" }]
+  },
+  "imageInstall": "image-install.sh"
+}

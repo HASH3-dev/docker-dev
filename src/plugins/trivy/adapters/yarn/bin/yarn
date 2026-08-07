@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+run_yarn() {
+  local yarn_binary corepack_binary
+  yarn_binary="$(asdf which yarn 2>/dev/null || true)"
+  if [[ -n "$yarn_binary" && -x "$yarn_binary" ]]; then
+    "$yarn_binary" "$@"
+    return
+  fi
+
+  corepack_binary="$(asdf which corepack 2>/dev/null || true)"
+  if [[ -n "$corepack_binary" && -x "$corepack_binary" ]]; then
+    "$corepack_binary" yarn "$@"
+    return
+  fi
+
+  echo 'Yarn is unavailable. Install and select Node with asdf first.' >&2
+  echo 'Example: asdf plugin add nodejs && asdf install nodejs latest && asdf set nodejs latest' >&2
+  return 127
+}
+
+workspace_root() {
+  local search_dir="$PWD"
+  while [[ "$search_dir" == /workspace || "$search_dir" == /workspace/* ]]; do
+    [[ -f "$search_dir/package.json" ]] && { printf '%s\n' "$search_dir"; return 0; }
+    [[ "$search_dir" == /workspace ]] && break
+    search_dir="$(dirname "$search_dir")"
+  done
+  echo 'Yarn security gate: no package.json was found below /workspace.' >&2
+  return 1
+}
+
+copy_active_tool_versions() {
+  local search_dir="$PWD"
+  while [[ "$search_dir" == /workspace || "$search_dir" == /workspace/* ]]; do
+    if [[ -f "$search_dir/.tool-versions" ]]; then cp "$search_dir/.tool-versions" "$1/.tool-versions"; return 0; fi
+    [[ "$search_dir" == /workspace ]] && break
+    search_dir="$(dirname "$search_dir")"
+  done
+}
+
+copy_manifests() {
+  local source_dir="$1" target_dir="$2" manifest workspace_pattern workspace_manifest relative_path
+  for manifest in package.json yarn.lock .yarnrc .yarnrc.yml; do
+    [[ -f "$source_dir/$manifest" ]] && cp "$source_dir/$manifest" "$target_dir/$manifest"
+  done
+  [[ -d "$source_dir/.yarn" ]] && cp -R "$source_dir/.yarn" "$target_dir/.yarn"
+  [[ -f "$source_dir/package.json" ]] || return 0
+  while IFS= read -r -d '' workspace_pattern; do
+    while IFS= read -r workspace_manifest; do
+      relative_path="${workspace_manifest#"$source_dir"/}"
+      mkdir -p "$target_dir/$(dirname "$relative_path")"
+      cp "$workspace_manifest" "$target_dir/$relative_path"
+    done < <(compgen -G "$source_dir/$workspace_pattern/package.json" || true)
+  done < <(
+    node -e '
+      const manifest = require(process.argv[1]);
+      const workspaces = Array.isArray(manifest.workspaces)
+        ? manifest.workspaces
+        : manifest.workspaces?.packages || [];
+      for (const workspace of workspaces) process.stdout.write(`${workspace}\0`);
+    ' "$source_dir/package.json"
+  )
+}
+
+run_yarn_without_scripts() {
+  local version
+  version="$(run_yarn --version)"
+  if [[ "$version" == 1.* ]]; then
+    run_yarn "$@" --ignore-scripts
+  else
+    YARN_ENABLE_SCRIPTS=0 run_yarn "$@"
+  fi
+}
+
+resolution_arguments() {
+  local argument skip_next=0
+  for argument in "$@"; do
+    if [[ "$skip_next" == '1' ]]; then skip_next=0; continue; fi
+    case "$argument" in
+      --immutable|--immutable-cache|--frozen-lockfile|--no-lockfile|--ignore-scripts|--mode=*) ;;
+      --mode) skip_next=1 ;;
+      *) printf '%s\0' "$argument" ;;
+    esac
+  done
+}
+
+scan_resolution() {
+  local command_name="$1"
+  shift
+  local root temporary_root scan_status=0 argument
+  local -a sanitized_args=()
+  root="$(workspace_root)"
+  temporary_root="$(mktemp -d)"
+  copy_active_tool_versions "$temporary_root"
+  copy_manifests "$root" "$temporary_root"
+
+  while IFS= read -r -d '' argument; do sanitized_args+=("$argument"); done < <(resolution_arguments "$@")
+  (
+    cd "$temporary_root"
+    run_yarn_without_scripts "$command_name" "${sanitized_args[@]}"
+    [[ -f yarn.lock ]] || { echo 'Yarn security gate: resolution did not produce yarn.lock.' >&2; exit 1; }
+    docker-dev-trivy-gate scan-lock "$temporary_root/yarn.lock"
+  ) || scan_status=$?
+
+  rm -rf "$temporary_root"
+  return "$scan_status"
+}
+
+case "${1:-}" in
+  install|i)
+    command_name="$1"; shift
+    scan_resolution "$command_name" "$@"
+    run_yarn "$command_name" "$@"
+    ;;
+  add)
+    shift
+    scan_resolution add "$@"
+    run_yarn add "$@"
+    ;;
+  up|upgrade)
+    command_name="$1"; shift
+    scan_resolution "$command_name" "$@"
+    run_yarn "$command_name" "$@"
+    ;;
+  *) run_yarn "$@" ;;
+esac

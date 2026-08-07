@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../../schemas/command.schema.json",
+  "name": "scan",
+  "args": "[path]",
+  "summary": "Scan a project path for vulnerabilities with Trivy.",
+  "help": "Scans the selected project path inside the development container. The default path is the project root. The command exits with a non-zero status when Trivy finds vulnerabilities at the configured severity.",
+  "steps": [
+    {
+      "call": {
+        "function": "scanTrivyPath",
+        "args": ["$@"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "../../schemas/command.schema.json",
+  "name": "logs",
+  "summary": "Follow logs from the development container.",
+  "help": "Follow logs from the development container.",
+  "steps": [
+    {
+      "call": {
+        "function": "requireSetup"
+      }
+    },
+    {
+      "call": {
+        "function": "compose",
+        "args": ["logs", "--follow"]
+      }
+    }
+  ]
+}

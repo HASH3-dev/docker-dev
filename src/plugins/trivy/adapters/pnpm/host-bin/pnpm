@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly docker_dev_dir="$(cd -- "$script_dir/../../../../../" && pwd)"
+readonly project_root="$(cd -- "$docker_dev_dir/.." && pwd)"
+readonly caller_dir="$(pwd -P)"
+
+case "$caller_dir" in
+  "$project_root") relative_path='.' ;;
+  "$project_root"/*) relative_path="${caller_dir#"$project_root"/}" ;;
+  *) echo "This pnpm wrapper only runs from ${project_root} or one of its subdirectories." >&2; exit 2 ;;
+esac
+
+[[ -x "$docker_dev_dir/docker-dev" ]] || {
+  echo "docker-dev is not linked in ${docker_dev_dir}. Run docker-dev setup again." >&2
+  exit 127
+}
+
+cd "$project_root"
+exec "$docker_dev_dir/docker-dev" pnpm "$relative_path" "$@"

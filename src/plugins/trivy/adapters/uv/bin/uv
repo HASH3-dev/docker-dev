@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly real_uv='/opt/docker-dev/uv/bin/uv'
+
+run_uv() {
+  [[ -x "$real_uv" ]] || { echo 'uv is unavailable. Rebuild the docker-dev image.' >&2; return 127; }
+  "$real_uv" "$@"
+}
+
+workspace_root() {
+  local search_dir="$PWD"
+  while [[ "$search_dir" == /workspace || "$search_dir" == /workspace/* ]]; do
+    [[ -f "$search_dir/pyproject.toml" ]] && { printf '%s\n' "$search_dir"; return 0; }
+    [[ "$search_dir" == /workspace ]] && break
+    search_dir="$(dirname "$search_dir")"
+  done
+  echo 'uv security gate: no pyproject.toml was found below /workspace.' >&2
+  return 1
+}
+
+copy_active_tool_versions() {
+  local search_dir="$PWD"
+  while [[ "$search_dir" == /workspace || "$search_dir" == /workspace/* ]]; do
+    if [[ -f "$search_dir/.tool-versions" ]]; then cp "$search_dir/.tool-versions" "$1/.tool-versions"; return 0; fi
+    [[ "$search_dir" == /workspace ]] && break
+    search_dir="$(dirname "$search_dir")"
+  done
+}
+
+copy_project_files() {
+  local source_dir="$1" target_dir="$2" file
+  for file in pyproject.toml uv.lock uv.toml .python-version; do
+    [[ -f "$source_dir/$file" ]] && cp "$source_dir/$file" "$target_dir/$file"
+  done
+}
+
+resolution_arguments() {
+  local argument skip_next=0
+  for argument in "$@"; do
+    if [[ "$skip_next" == '1' ]]; then skip_next=0; continue; fi
+    case "$argument" in
+      --locked|--frozen|--no-sync|--offline|--project=*|--directory=*) ;;
+      --project|--directory) skip_next=1 ;;
+      *) printf '%s\0' "$argument" ;;
+    esac
+  done
+}
+
+scan_project_resolution() {
+  local resolution_command="$1"
+  shift
+  local root temporary_root scan_status=0 argument
+  local -a sanitized_args=()
+  root="$(workspace_root)"
+  temporary_root="$(mktemp -d)"
+  copy_active_tool_versions "$temporary_root"
+  copy_project_files "$root" "$temporary_root"
+  while IFS= read -r -d '' argument; do sanitized_args+=("$argument"); done < <(resolution_arguments "$@")
+
+  (
+    cd "$temporary_root"
+    run_uv "$resolution_command" "${sanitized_args[@]}"
+    [[ -f uv.lock ]] || { echo 'uv security gate: resolution did not produce uv.lock.' >&2; exit 1; }
+    docker-dev-trivy-gate scan-lock "$temporary_root/uv.lock"
+  ) || scan_status=$?
+
+  rm -rf "$temporary_root"
+  return "$scan_status"
+}
+
+scan_direct_packages() {
+  local temporary_root scan_status=0 package
+  [[ $# -gt 0 ]] || { echo 'uv security gate: provide one or more package specifications.' >&2; return 2; }
+  for package in "$@"; do
+    [[ "$package" != -* ]] || {
+      echo 'uv security gate: direct installs with options are not supported; use `uv add` for project dependencies.' >&2
+      return 2
+    }
+  done
+  temporary_root="$(mktemp -d)"
+  copy_active_tool_versions "$temporary_root"
+  cat > "$temporary_root/pyproject.toml" <<'EOF'
+[project]
+name = "dependency-security-check"
+version = "0.0.0"
+requires-python = ">=3.9"
+EOF
+  (
+    cd "$temporary_root"
+    run_uv add --no-sync "$@"
+    [[ -f uv.lock ]] || { echo 'uv security gate: resolution did not produce uv.lock.' >&2; exit 1; }
+    docker-dev-trivy-gate scan-lock "$temporary_root/uv.lock"
+  ) || scan_status=$?
+  rm -rf "$temporary_root"
+  return "$scan_status"
+}
+
+case "${1:-}" in
+  add)
+    shift
+    scan_project_resolution add --no-sync "$@"
+    run_uv add "$@"
+    ;;
+  lock)
+    shift
+    scan_project_resolution lock "$@"
+    run_uv lock "$@"
+    ;;
+  sync)
+    shift
+    # Extras and groups affect the environment, not the lock graph. Resolve
+    # the project lockfile once in isolation before the real sync.
+    scan_project_resolution lock
+    run_uv sync "$@"
+    ;;
+  pip)
+    [[ "${2:-}" == 'install' ]] || { run_uv "$@"; exit $?; }
+    shift 2
+    scan_direct_packages "$@"
+    run_uv pip install "$@"
+    ;;
+  tool)
+    [[ "${2:-}" == 'install' ]] || { run_uv "$@"; exit $?; }
+    shift 2
+    scan_direct_packages "$@"
+    run_uv tool install "$@"
+    ;;
+  *) run_uv "$@" ;;
+esac

@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../../../../schemas/command.schema.json",
+  "name": "pnpm",
+  "args": "<project-relative-path> [pnpm-arguments...]",
+  "summary": "Run the protected pnpm wrapper.",
+  "help": "Run pnpm inside the protected development container.",
+  "steps": [
+    {
+      "call": {
+        "function": "runPnpmWrapper",
+        "args": ["$@"]
+      }
+    }
+  ]
+}

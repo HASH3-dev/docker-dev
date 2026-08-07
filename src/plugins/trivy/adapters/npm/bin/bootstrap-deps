@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly marker_file="/workspace/node_modules/.docker-dev-dependencies.sha256"
+
+dependency_digest() {
+  find . \
+    \( -path './.git' -o -path './node_modules' \) -prune -o \
+    \( -name package.json -o -name package-lock.json -o -name npm-shrinkwrap.json -o -name pnpm-lock.yaml -o -name yarn.lock -o -name .yarnrc -o -name .yarnrc.yml \) \
+    -type f -print0 \
+    | sort -z \
+    | xargs -0 -r sha256sum \
+    | sha256sum \
+    | awk '{print $1}'
+}
+
+if [[ ! -f package.json ]]; then
+  echo 'No package.json found; skipping dependency installation.'
+  exit 0
+fi
+
+current_digest="$(dependency_digest)"
+if [[ "${1:-}" != '--force' ]] && [[ -f "$marker_file" ]] && [[ "$(<"$marker_file")" == "$current_digest" ]]; then
+  echo 'Dependencies are already synchronized.'
+  exit 0
+fi
+
+if [[ -f pnpm-lock.yaml ]]; then
+  pnpm install --frozen-lockfile
+elif [[ -f yarn.lock ]]; then
+  if [[ -f .yarnrc.yml ]]; then
+    yarn install --immutable
+  else
+    yarn install --frozen-lockfile
+  fi
+elif [[ -f package-lock.json || -f npm-shrinkwrap.json ]]; then
+  npm ci
+else
+  npm install
+fi
+
+printf '%s\n' "$current_digest" > "$marker_file"

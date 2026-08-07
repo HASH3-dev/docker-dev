@@ -1,0 +1,34 @@
+{
+  "$schema": "../../schemas/command.schema.json",
+  "name": "shell",
+  "options": [
+    {
+      "flags": "--merge-compose",
+      "description": "Start the project's Compose infrastructure as well."
+    },
+    {
+      "flags": "--merge-file <compose-file>",
+      "description": "Merge this project Compose file last, overriding docker-dev."
+    }
+  ],
+  "summary": "Alias for up.",
+  "help": "Alias for up. custom-compose.yml is applied after docker-dev's configuration. --merge-file applies the selected project Compose file last.",
+  "steps": [
+    {
+      "call": {
+        "function": "requireSetup"
+      }
+    },
+    {
+      "call": {
+        "function": "start"
+      }
+    },
+    {
+      "call": {
+        "function": "execInDev",
+        "args": ["dev", "bash"]
+      }
+    }
+  ]
+}

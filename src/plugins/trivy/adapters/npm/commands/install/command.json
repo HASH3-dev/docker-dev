@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../../../schemas/command.schema.json",
+  "name": "install",
+  "summary": "Synchronize dependencies through the protected package manager.",
+  "help": "Force protected dependency synchronization.",
+  "steps": [
+    {
+      "call": {
+        "function": "requireNoArguments"
+      }
+    },
+    {
+      "call": {
+        "function": "start"
+      }
+    },
+    {
+      "call": {
+        "function": "execInDev",
+        "args": ["--no-TTY", "dev", "/usr/local/bin/bootstrap-deps", "--force"]
+      }
+    }
+  ]
+}

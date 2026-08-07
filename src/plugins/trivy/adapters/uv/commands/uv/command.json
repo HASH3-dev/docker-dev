@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../../../../schemas/command.schema.json",
+  "name": "uv",
+  "args": "<project-relative-path> [uv-arguments...]",
+  "summary": "Run the protected uv wrapper.",
+  "help": "Run uv inside the protected development container.",
+  "steps": [
+    {
+      "call": {
+        "function": "runUvWrapper",
+        "args": ["$@"]
+      }
+    }
+  ]
+}

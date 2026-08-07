@@ -1,0 +1,19 @@
+{
+  "$schema": "../../schemas/command.schema.json",
+  "name": "reset",
+  "summary": "Stop the environment and remove its volumes.",
+  "help": "Stop containers and remove dependency, cache, runtime and home volumes.",
+  "steps": [
+    {
+      "call": {
+        "function": "requireSetup"
+      }
+    },
+    {
+      "call": {
+        "function": "compose",
+        "args": ["down", "--volumes"]
+      }
+    }
+  ]
+}

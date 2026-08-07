@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../../../../schemas/command.schema.json",
+  "name": "npm",
+  "args": "<project-relative-path> [npm-arguments...]",
+  "summary": "Run the protected npm wrapper.",
+  "help": "Run npm inside the protected development container.",
+  "steps": [
+    {
+      "call": {
+        "function": "runNpmWrapper",
+        "args": ["$@"]
+      }
+    }
+  ]
+}

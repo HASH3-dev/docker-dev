@@ -1,0 +1,35 @@
+{
+  "$schema": "../../schemas/command.schema.json",
+  "name": "rebuild",
+  "summary": "Rebuild and recreate the development container.",
+  "help": "Rebuild and recreate the development container.",
+  "steps": [
+    {
+      "call": {
+        "function": "requireSetup"
+      }
+    },
+    {
+      "call": {
+        "function": "refreshAssets"
+      }
+    },
+    {
+      "call": {
+        "function": "compose",
+        "args": ["up", "--detach", "--build", "--force-recreate"]
+      }
+    },
+    {
+      "call": {
+        "function": "installAsdfTools"
+      }
+    },
+    {
+      "call": {
+        "function": "runPluginHook",
+        "args": ["post-asdf"]
+      }
+    }
+  ]
+}

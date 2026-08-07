@@ -1,0 +1,19 @@
+{
+  "$schema": "../../schemas/command.schema.json",
+  "name": "down",
+  "summary": "Stop the environment.",
+  "help": "Stop containers while preserving volumes.",
+  "steps": [
+    {
+      "call": {
+        "function": "requireSetup"
+      }
+    },
+    {
+      "call": {
+        "function": "compose",
+        "args": ["down"]
+      }
+    }
+  ]
+}

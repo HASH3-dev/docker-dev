@@ -1,0 +1,32 @@
+{
+  "name": "docker-dev-2",
+  "version": "0.1.1",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "docker-dev": "./src/index.ts"
+  },
+  "scripts": {
+    "assets:generate": "bun run scripts/generate-embedded-assets.ts",
+    "dev": "bun run assets:generate && bun run src/index.ts",
+    "check": "bun run assets:generate && tsc --noEmit",
+    "test": "bun test",
+    "release": "bun run scripts/release.ts",
+    "build": "bun run assets:generate && bun build ./src/index.ts --compile --minify --sourcemap --outfile ./dist/docker-dev",
+    "build:linux-x64": "bun build ./src/index.ts --compile --target=bun-linux-x64-baseline --minify --sourcemap --outfile ./dist/docker-dev-linux-x64",
+    "build:linux-arm64": "bun build ./src/index.ts --compile --target=bun-linux-arm64 --minify --sourcemap --outfile ./dist/docker-dev-linux-arm64",
+    "build:darwin-x64": "bun build ./src/index.ts --compile --target=bun-darwin-x64 --minify --sourcemap --outfile ./dist/docker-dev-darwin-x64",
+    "build:darwin-arm64": "bun build ./src/index.ts --compile --target=bun-darwin-arm64 --minify --sourcemap --outfile ./dist/docker-dev-darwin-arm64",
+    "build:windows-x64": "bun build ./src/index.ts --compile --target=bun-windows-x64-baseline --minify --sourcemap --outfile ./dist/docker-dev-windows-x64.exe",
+    "build:all": "bun run build:linux-x64 && bun run build:linux-arm64 && bun run build:darwin-x64 && bun run build:darwin-arm64 && bun run build:windows-x64"
+  },
+  "dependencies": {
+    "@clack/prompts": "1.7.0",
+    "ajv": "8.20.0",
+    "commander": "14.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.0.0"
+  }
+}

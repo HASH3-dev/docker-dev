@@ -1,0 +1,11 @@
+{
+  "$schema": "../../../../schemas/plugin.schema.json",
+  "name": "uv",
+  "kind": "package-manager-adapter",
+  "summary": "Protects uv Python dependency installation with the Trivy gate.",
+  "requiresRuntimes": ["python"],
+  "detect": {
+    "files": ["pyproject.toml", "uv.lock"]
+  },
+  "imageInstall": "image-install.sh"
+}

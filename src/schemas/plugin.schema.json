@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docker-dev.local/schemas/plugin/v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "kind", "summary"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "name": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "kind": { "type": "string", "minLength": 1 },
+    "summary": { "type": "string", "minLength": 1 },
+    "imageInstall": { "type": "string" },
+    "commandsDirectory": { "type": "string", "default": "commands" },
+    "requiresRuntimes": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$" },
+      "uniqueItems": true
+    },
+    "detect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["files"],
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-Za-z0-9._/-]+$" },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      }
+    },
+    "container": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "environment": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[A-Z_][A-Z0-9_]*$" },
+          "additionalProperties": { "type": "string" }
+        },
+        "volumes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "target"],
+            "properties": {
+              "name": { "type": "string", "pattern": "^[a-z][a-z0-9_-]*$" },
+              "target": { "type": "string", "pattern": "^/[A-Za-z0-9._/-]+$" }
+            }
+          }
+        }
+      }
+    },
+    "plugins": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["directory"],
+      "properties": {
+        "directory": { "type": "string", "pattern": "^[A-Za-z0-9._/-]+$" },
+        "enabledFile": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._/-]+$",
+          "default": "plugins.enabled"
+        }
+      }
+    },
+    "hooks": { "type": "object", "additionalProperties": { "type": "string" } }
+  }
+}

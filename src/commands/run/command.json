@@ -1,0 +1,31 @@
+{
+  "$schema": "../../schemas/command.schema.json",
+  "name": "run",
+  "args": "<command> [arguments...]",
+  "summary": "Run a command in the development container.",
+  "help": "Run a command in the development container.",
+  "steps": [
+    {
+      "call": {
+        "function": "requireSetup"
+      }
+    },
+    {
+      "call": {
+        "function": "requireCommandArguments",
+        "args": ["$@"]
+      }
+    },
+    {
+      "call": {
+        "function": "start"
+      }
+    },
+    {
+      "call": {
+        "function": "execInDev",
+        "args": ["dev", "$@"]
+      }
+    }
+  ]
+}
