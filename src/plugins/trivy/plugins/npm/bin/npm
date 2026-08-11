@@ -1,6 +1,28 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Locate this script's plugin directory so it can find its own config file,
+# which the user may edit at .docker-dev/plugins/trivy/plugins/npm/npm.config.json
+# in the project (mirrors this plugin's path under /opt/docker-dev/plugins/).
+readonly plugin_dir="$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")"
+readonly npm_config_file="/workspace/.docker-dev/${plugin_dir#/opt/docker-dev/}/npm.config.json"
+
+ignore_scripts=0
+audit_severity=""
+
+read_npm_config() {
+  command -v node >/dev/null 2>&1 || return 0
+  [[ -f "$npm_config_file" ]] || return 0
+
+  local parsed
+  parsed="$(node -e '
+    const config = require(process.argv[1]);
+    process.stdout.write(`${config.ignoreScripts ? 1 : 0}\n${config.blockOnAuditSeverity || ""}\n`);
+  ' "$npm_config_file" 2>/dev/null)" || return 0
+  ignore_scripts="$(sed -n 1p <<<"$parsed")"
+  audit_severity="$(sed -n 2p <<<"$parsed")"
+}
+
 # Keep the mandatory wrapper first in PATH. Node is deliberately not part of
 # the base image: after the developer installs it through asdf, call its real
 # npm binary directly underneath this wrapper to avoid recursion.
@@ -111,6 +133,7 @@ scan_install() {
     cd "$temporary_root"
     run_npm install --package-lock-only --package-lock=true --ignore-scripts "${resolution_args[@]}"
     scan_lockfile "$temporary_root/package-lock.json"
+    [[ -z "$audit_severity" ]] || run_npm audit --audit-level="$audit_severity"
   ) || scan_status=$?
 
   rm -rf "$temporary_root"
@@ -128,19 +151,24 @@ scan_existing_lock() {
   fi
 }
 
+read_npm_config
+
 case "${1:-}" in
   install|i)
     shift
     scan_install "$@"
+    [[ "$ignore_scripts" == 1 ]] && set -- "$@" --ignore-scripts
     run_npm install "$@"
     ;;
   ci)
     scan_existing_lock
-    run_npm ci "${@:2}"
+    [[ "$ignore_scripts" == 1 ]] && set -- "${@:2}" --ignore-scripts || set -- "${@:2}"
+    run_npm ci "$@"
     ;;
   update|up)
     shift
     scan_install "$@"
+    [[ "$ignore_scripts" == 1 ]] && set -- "$@" --ignore-scripts
     run_npm update "$@"
     ;;
   *)

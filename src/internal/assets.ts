@@ -12,6 +12,7 @@ import {
 import { dirname, join } from "node:path";
 import packageManifest from "../../package.json";
 import { embeddedAssets } from "../../.generated/embedded-assets";
+import { parsePluginManifest } from "../schemas/manifest";
 
 const stateName = ".docker-dev-state.json";
 const version = packageManifest.version;
@@ -24,6 +25,29 @@ const isProjectConfiguration = (path: string) =>
   isPluginSelection(path) ||
   path === "ports.env" ||
   path === "custom-compose.yml";
+
+/**
+ * Paths (relative to .docker-dev) of every plugin's own config file, derived
+ * from `configPath` in each embedded plugin.json. The embedded copy always
+ * carries the plugin author's defaults, since it ships from src/plugins/.
+ */
+function pluginConfigPaths(): Set<string> {
+  const paths = new Set<string>();
+
+  for (const asset of embeddedAssets) {
+    if (!asset.path.endsWith("/plugin.json")) continue;
+
+    const { configPath } = parsePluginManifest(
+      JSON.parse(Buffer.from(asset.data, "base64").toString("utf8")),
+    );
+
+    if (configPath) {
+      paths.add(join(dirname(asset.path), configPath));
+    }
+  }
+
+  return paths;
+}
 
 /** A fully-decided setup configuration, applied atomically by materializeAssets. */
 export interface AssetPlan {
@@ -85,6 +109,9 @@ export async function materializeAssets(
   directory: string,
   plan?: AssetPlan,
 ): Promise<void> {
+  const configPaths = pluginConfigPaths();
+  const isConfiguration = (path: string) =>
+    isProjectConfiguration(path) || configPaths.has(path);
   const statePath = join(directory, stateName);
   let previous: State | undefined;
   try {
@@ -107,7 +134,7 @@ export async function materializeAssets(
     for (const [path, expected] of Object.entries(previous.hashes)) {
       // Project configuration is copied into the next asset tree below and
       // may legitimately differ from the defaults embedded in the executable.
-      if (isProjectConfiguration(path)) {
+      if (isConfiguration(path)) {
         continue;
       }
 
@@ -155,12 +182,12 @@ export async function materializeAssets(
 
     const data = Buffer.from(asset.data, "base64");
 
-    if (isProjectConfiguration(asset.path)) {
+    if (isConfiguration(asset.path)) {
       try {
         await copyFile(join(directory, asset.path), target);
         continue;
       } catch {
-        /* First setup: distribute the default plugin selection. */
+        /* First setup: distribute the embedded default. */
       }
     }
 

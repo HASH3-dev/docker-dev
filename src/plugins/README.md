@@ -28,6 +28,24 @@ Não há hooks de host: um plugin nunca deve alterar configuração, pacotes ou
 credenciais da máquina do desenvolvedor. Mudanças no host continuam concentradas
 no comando `setup` do núcleo e exigem confirmação explícita.
 
+## Config do plugin
+
+Um plugin pode declarar `configPath` no `plugin.json`: um caminho relativo
+(sem `..` nem `/` inicial) a um arquivo JSON dentro da própria pasta do
+plugin, ex.: `"configPath": "npm.config.json"`. Esse caminho é fixo e não pode
+ser alterado pelo usuário — só o conteúdo do arquivo. Por convenção, o próprio
+plugin deve commitar esse arquivo (`src/plugins/.../<plugin>/npm.config.json`)
+já com todas as propriedades suportadas preenchidas com seus valores default;
+isso documenta o schema de configuração do plugin sem precisar de outro
+arquivo. O arquivo é distribuído para
+`.docker-dev/plugins/.../<plugin>/npm.config.json` no projeto do usuário como
+qualquer outra configuração de projeto (como `ports.env`): na primeira vez
+usa o default embutido, e depois disso o conteúdo local é preservado entre
+re-execuções de `docker-dev setup`/`refreshAssets`, então o usuário pode
+editá-lo livremente. Para ler o config a partir de um `command.ts`, use
+`readPluginConfig` de `@internal/plugins`, passando o caminho do plugin
+relativo a `.docker-dev` (ex.: `"plugins/trivy/plugins/npm"`).
+
 ## Subplugins
 
 Um plugin pai pode declarar plugins internos com `plugins.directory`. Se não

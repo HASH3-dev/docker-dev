@@ -83,6 +83,35 @@ async function manifests(directory: string): Promise<PluginManifest[]> {
   );
 }
 
+/**
+ * Reads a plugin's own config file, following `configPath` from its
+ * `plugin.json`. `pluginRelativeDir` is the plugin's directory relative to
+ * `.docker-dev` (e.g. "plugins/trivy/plugins/npm", mirroring its location
+ * under src/plugins/). Returns undefined if the plugin declares no
+ * `configPath` or the user has not created the file yet.
+ */
+export async function readPluginConfig<T = unknown>(
+  dockerDevDirectory: string,
+  pluginRelativeDir: string,
+): Promise<T | undefined> {
+  const pluginDirectory = join(dockerDevDirectory, ...pluginRelativeDir.split("/"));
+  const manifest = parsePluginManifest(
+    JSON.parse(await readFile(join(pluginDirectory, "plugin.json"), "utf8")),
+  );
+
+  if (!manifest.configPath) {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(
+      await readFile(join(pluginDirectory, manifest.configPath), "utf8"),
+    ) as T;
+  } catch {
+    return undefined;
+  }
+}
+
 function supportsRuntimes(
   plugin: PluginManifest,
   runtimes: ReadonlySet<string>,

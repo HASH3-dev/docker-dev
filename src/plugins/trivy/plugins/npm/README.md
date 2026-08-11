@@ -11,3 +11,23 @@ Também fornece:
 ./.docker-dev/dev.sh npm . install pacote
 ./.docker-dev/dev.sh install
 ```
+
+## Config
+
+`.docker-dev/plugins/trivy/plugins/npm/npm.config.json` nasce no `setup` e
+pode ser editado para customizar o wrapper:
+
+```json
+{
+  "ignoreScripts": true,
+  "blockOnAuditSeverity": "high"
+}
+```
+
+- `ignoreScripts`: quando `true`, adiciona `--ignore-scripts` em `install`,
+  `ci` e `update`.
+- `blockOnAuditSeverity`: quando definido, roda `npm audit --audit-level=<valor>`
+  após a resolução de segurança do Trivy; a instalação real só ocorre se o
+  audit passar (ex.: `"high"` bloqueia em achados High ou Critical).
+
+Sem o arquivo, o wrapper usa os defaults (nenhuma das duas flags ativa).

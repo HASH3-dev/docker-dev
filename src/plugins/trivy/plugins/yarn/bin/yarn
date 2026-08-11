@@ -1,6 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+readonly plugin_dir="$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")"
+readonly yarn_config_file="/workspace/.docker-dev/${plugin_dir#/opt/docker-dev/}/yarn.config.json"
+
+ignore_scripts=0
+audit_severity=""
+
+read_yarn_config() {
+  command -v node >/dev/null 2>&1 || return 0
+  [[ -f "$yarn_config_file" ]] || return 0
+
+  local parsed
+  parsed="$(node -e '
+    const config = require(process.argv[1]);
+    process.stdout.write(`${config.ignoreScripts ? 1 : 0}\n${config.blockOnAuditSeverity || ""}\n`);
+  ' "$yarn_config_file" 2>/dev/null)" || return 0
+  ignore_scripts="$(sed -n 1p <<<"$parsed")"
+  audit_severity="$(sed -n 2p <<<"$parsed")"
+}
+
 run_yarn() {
   local yarn_binary corepack_binary
   yarn_binary="$(asdf which yarn 2>/dev/null || true)"
@@ -74,6 +93,22 @@ run_yarn_without_scripts() {
   fi
 }
 
+run_yarn_real() {
+  [[ "$ignore_scripts" == 1 ]] && run_yarn_without_scripts "$@" || run_yarn "$@"
+}
+
+run_yarn_audit() {
+  [[ -z "$audit_severity" ]] && return 0
+
+  local version
+  version="$(run_yarn --version)"
+  if [[ "$version" == 1.* ]]; then
+    run_yarn audit --level "$audit_severity"
+  else
+    run_yarn npm audit --severity "$audit_severity"
+  fi
+}
+
 resolution_arguments() {
   local argument skip_next=0
   for argument in "$@"; do
@@ -102,27 +137,30 @@ scan_resolution() {
     run_yarn_without_scripts "$command_name" "${sanitized_args[@]}"
     [[ -f yarn.lock ]] || { echo 'Yarn security gate: resolution did not produce yarn.lock.' >&2; exit 1; }
     docker-dev-trivy-gate scan-lock "$temporary_root/yarn.lock"
+    run_yarn_audit
   ) || scan_status=$?
 
   rm -rf "$temporary_root"
   return "$scan_status"
 }
 
+read_yarn_config
+
 case "${1:-}" in
   install|i)
     command_name="$1"; shift
     scan_resolution "$command_name" "$@"
-    run_yarn "$command_name" "$@"
+    run_yarn_real "$command_name" "$@"
     ;;
   add)
     shift
     scan_resolution add "$@"
-    run_yarn add "$@"
+    run_yarn_real add "$@"
     ;;
   up|upgrade)
     command_name="$1"; shift
     scan_resolution "$command_name" "$@"
-    run_yarn "$command_name" "$@"
+    run_yarn_real "$command_name" "$@"
     ;;
   *) run_yarn "$@" ;;
 esac

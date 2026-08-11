@@ -1,6 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+readonly plugin_dir="$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")"
+readonly pnpm_config_file="/workspace/.docker-dev/${plugin_dir#/opt/docker-dev/}/pnpm.config.json"
+
+ignore_scripts=0
+audit_severity=""
+
+read_pnpm_config() {
+  command -v node >/dev/null 2>&1 || return 0
+  [[ -f "$pnpm_config_file" ]] || return 0
+
+  local parsed
+  parsed="$(node -e '
+    const config = require(process.argv[1]);
+    process.stdout.write(`${config.ignoreScripts ? 1 : 0}\n${config.blockOnAuditSeverity || ""}\n`);
+  ' "$pnpm_config_file" 2>/dev/null)" || return 0
+  ignore_scripts="$(sed -n 1p <<<"$parsed")"
+  audit_severity="$(sed -n 2p <<<"$parsed")"
+}
+
 run_pnpm() {
   local pnpm_binary corepack_binary
   pnpm_binary="$(asdf which pnpm 2>/dev/null || true)"
@@ -73,25 +92,31 @@ scan_resolution() {
     run_pnpm "$command_name" --lockfile-only --ignore-scripts "${sanitized_args[@]}"
     [[ -f pnpm-lock.yaml ]] || { echo 'pnpm security gate: resolution did not produce pnpm-lock.yaml.' >&2; exit 1; }
     docker-dev-trivy-gate scan-lock "$temporary_root/pnpm-lock.yaml"
+    [[ -z "$audit_severity" ]] || run_pnpm audit --audit-level="$audit_severity"
   ) || scan_status=$?
   rm -rf "$temporary_root"
   return "$scan_status"
 }
 
+read_pnpm_config
+
 case "${1:-}" in
   install|i)
     command_name="$1"; shift
     scan_resolution "$command_name" "$@"
+    [[ "$ignore_scripts" == 1 ]] && set -- "$@" --ignore-scripts
     run_pnpm "$command_name" "$@"
     ;;
   add)
     shift
     scan_resolution add "$@"
+    [[ "$ignore_scripts" == 1 ]] && set -- "$@" --ignore-scripts
     run_pnpm add "$@"
     ;;
   update|up)
     command_name="$1"; shift
     scan_resolution "$command_name" "$@"
+    [[ "$ignore_scripts" == 1 ]] && set -- "$@" --ignore-scripts
     run_pnpm "$command_name" "$@"
     ;;
   *) run_pnpm "$@" ;;
