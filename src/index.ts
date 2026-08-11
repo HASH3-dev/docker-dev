@@ -1,6 +1,10 @@
 #!/usr/bin/env bun
 import { Command } from "commander";
-import { manifests, registerCommandModules } from "@internal/command-registry";
+import {
+  manifests,
+  registerCommandModules,
+} from "../.generated/command-registry";
+import packageManifest from "../package.json";
 import { registerInternalActions } from "@internal/actions";
 import { createContext } from "@lib/context";
 import { runManifest } from "@internal/command-runner";
@@ -13,7 +17,7 @@ registerCommandModules(registry);
 const program = new Command()
   .name("docker-dev")
   .description("Portable Docker development environments.")
-  .version("0.2.0")
+  .version(packageManifest.version)
   .showSuggestionAfterError();
 
 for (const manifest of manifests) {

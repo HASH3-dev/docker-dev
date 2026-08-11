@@ -72,11 +72,18 @@ Cada comando fica em `src/commands/<nome>/command.json`. O schema aceita:
 Mantenha o texto de `help` orientado ao usuário e descreva efeitos relevantes,
 especialmente alterações no host, volumes e remoção de recursos.
 
+Comandos de núcleo e de plugins são descobertos automaticamente por
+`scripts/generate-command-registry.ts`, que varre `command.json` em
+`src/commands` e `src/plugins` e gera `.generated/command-registry.ts`. Não
+há registro manual: basta criar a pasta `commands/<nome>/command.json` (com
+`command.ts` opcional) no local correspondente.
+
 ## Assets e atualização
 
 Os arquivos em `src/assets` são incorporados ao executável por
-`scripts/generate-embedded-assets.ts`. Rode `bun run assets:generate` quando
-precisar inspecionar a saída; `check` e `build` já a executam automaticamente.
+`scripts/generate-embedded-assets.ts`. Rode `bun run generate` quando
+precisar inspecionar a saída de assets e comandos; `check` e `build` já a
+executam automaticamente.
 
 `materializeAssets` protege alterações locais em arquivos gerenciados usando
 `.docker-dev-state.json`. Não altere esse estado manualmente nem o use como
