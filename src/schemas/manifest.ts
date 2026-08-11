@@ -22,6 +22,7 @@ export interface PluginManifest {
   kind: string;
   summary: string;
   requiresRuntimes?: string[];
+  configPath?: string;
   detect?: { files: string[] };
   container?: {
     environment?: Record<string, string>;

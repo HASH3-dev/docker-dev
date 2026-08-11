@@ -6,10 +6,6 @@ export function parsePortList(value: string): string[] {
     .map((port) => port.trim())
     .filter(Boolean);
 
-  if (!ports.length) {
-    throw new Error("Provide at least one port.");
-  }
-
   for (const port of ports) {
     const match = port.match(portMapping);
     const host = Number(match?.[1]);

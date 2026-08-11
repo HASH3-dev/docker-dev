@@ -59,7 +59,7 @@ docker-dev setup
 O assistente:
 
 1. cria/atualiza `.docker-dev`;
-2. solicita as portas que serão expostas somente em `localhost`;
+2. solicita as portas que serão expostas somente em `localhost` (deixe vazio para nenhuma);
 3. lê ou cria `.tool-versions` para os runtimes asdf;
 4. oferece plugins e subplugins compatíveis com os runtimes e arquivos do projeto;
 5. prepara o direnv, inicia o container e instala os runtimes selecionados.
@@ -101,7 +101,7 @@ docker-dev up --merge-compose --merge-file compose.dev.yml
 ```
 
 Quando os adaptadores de segurança do Trivy estiverem habilitados, comandos
-como `npm`, `pnpm`, `yarn` e `uv` também podem ser encaminhados pelo
+como `bun`, `npm`, `pnpm`, `yarn` e `uv` também podem ser encaminhados pelo
 `docker-dev` e executados no ambiente protegido.
 
 ## Configuração versionada
@@ -110,7 +110,7 @@ O diretório `.docker-dev` contém a configuração do ambiente. Em especial,
 versione estes arquivos para que todos os desenvolvedores usem a mesma
 composição:
 
-- `ports.env` — portas publicadas;
+- `ports.env` — portas publicadas; `DOCKER_DEV_PORTS=` não publica nenhuma;
 - `plugins/plugins.enabled` e os `plugins.enabled` aninhados — plugins ativos;
 - `.ports.generated.yml` e `.plugins.generated.yml` — composição efetiva
   produzida pela configuração selecionada.

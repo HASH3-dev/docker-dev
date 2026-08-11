@@ -12,9 +12,9 @@ docker-dev-trivy-gate scan-path <path>
 temporária, completa e sem scripts de pacote. Se o gate retornar código diferente
 de zero, o adaptador não pode executar a instalação real.
 
-Os subplugins habilitados ficam em `plugins.enabled`. O subplugin `npm` é o
-referência inicial; futuros adaptadores podem implementar pnpm, Yarn, pip e uv
-sem precisar conhecer a instalação ou as opções do Trivy.
+Os subplugins habilitados ficam em `plugins.enabled`. Os adaptadores Bun, npm,
+pnpm, Yarn e uv usam esse contrato sem precisar conhecer instalação ou opções do
+Trivy.
 
 Todos os níveis usam o mesmo schema de plugin e podem declarar novos plugins
 filhos recursivamente.

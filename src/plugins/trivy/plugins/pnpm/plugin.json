@@ -4,6 +4,7 @@
   "kind": "package-manager-adapter",
   "summary": "Protects pnpm dependency installation with the Trivy gate.",
   "requiresRuntimes": ["nodejs"],
+  "configPath": "pnpm.config.json",
   "detect": {
     "files": ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml"]
   },

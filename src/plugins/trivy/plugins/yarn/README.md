@@ -16,3 +16,18 @@ Também é possível chamar o wrapper explicitamente:
 ```bash
 ./.docker-dev/dev.sh yarn . add pacote
 ```
+
+## Config
+
+`.docker-dev/plugins/trivy/plugins/yarn/yarn.config.json` nasce no `setup` com:
+
+```json
+{
+  "ignoreScripts": false,
+  "blockOnAuditSeverity": ""
+}
+```
+
+- `ignoreScripts`: quando `true`, desabilita scripts também na instalação real.
+- `blockOnAuditSeverity`: quando definido, roda `yarn audit` (Classic) ou
+  `yarn npm audit` (Berry) antes da instalação real. Falha bloqueia instalação.

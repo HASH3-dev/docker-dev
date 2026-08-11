@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../../schemas/plugin.schema.json",
+  "name": "bun",
+  "kind": "package-manager-adapter",
+  "summary": "Protects Bun dependency installation with the Trivy gate.",
+  "requiresRuntimes": ["bun"],
+  "configPath": "bun.config.json",
+  "detect": {
+    "files": ["package.json", "bun.lock", "bun.lockb"]
+  },
+  "container": {
+    "volumes": [{ "name": "node_modules", "target": "/workspace/node_modules" }]
+  }
+}

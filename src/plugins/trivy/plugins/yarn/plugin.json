@@ -4,6 +4,7 @@
   "kind": "package-manager-adapter",
   "summary": "Protects Yarn dependency installation with the Trivy gate.",
   "requiresRuntimes": ["nodejs"],
+  "configPath": "yarn.config.json",
   "detect": {
     "files": ["package.json", "yarn.lock", ".yarnrc.yml"]
   },

@@ -1,0 +1,9 @@
+services:
+  dev:
+    environment:
+      DOCKER_DEV_WRITABLE_DIRECTORIES: "/workspace/node_modules"
+    volumes:
+      - node_modules:/workspace/node_modules
+
+volumes:
+  node_modules:

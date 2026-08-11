@@ -1,0 +1,6 @@
+{
+  "$schema": "../../schemas/plugin.schema.json",
+  "name": "trivy",
+  "kind": "security-gate",
+  "summary": "Provides vulnerability scanning for package-manager plugins."
+}

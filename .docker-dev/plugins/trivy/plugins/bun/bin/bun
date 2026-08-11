@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly plugin_dir="$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")"
+readonly bun_config_file="/workspace/.docker-dev/${plugin_dir#/opt/docker-dev/}/bun.config.json"
+
+ignore_scripts=0
+audit_severity=""
+
+read_bun_config() {
+  command -v node >/dev/null 2>&1 || return 0
+  [[ -f "$bun_config_file" ]] || return 0
+
+  local parsed
+  parsed="$(node -e '
+    const config = require(process.argv[1]);
+    process.stdout.write(`${config.ignoreScripts ? 1 : 0}\n${config.blockOnAuditSeverity || ""}\n`);
+  ' "$bun_config_file" 2>/dev/null)" || return 0
+  ignore_scripts="$(sed -n 1p <<<"$parsed")"
+  audit_severity="$(sed -n 2p <<<"$parsed")"
+}
+
+run_bun() {
+  local bun_binary
+  bun_binary="$(asdf which bun 2>/dev/null || true)"
+  if [[ -n "$bun_binary" && -x "$bun_binary" ]]; then "$bun_binary" "$@"; return; fi
+  echo 'Bun is unavailable. Install and select Bun with asdf first.' >&2
+  echo 'Example: asdf plugin add bun && asdf install bun latest && asdf set bun latest' >&2
+  return 127
+}
+
+workspace_root() {
+  local search_dir="$PWD" candidate=''
+  while [[ "$search_dir" == /workspace || "$search_dir" == /workspace/* ]]; do
+    [[ -z "$candidate" && -f "$search_dir/package.json" ]] && candidate="$search_dir"
+    [[ "$search_dir" == /workspace ]] && break
+    search_dir="$(dirname "$search_dir")"
+  done
+  [[ -n "$candidate" ]] && { printf '%s\n' "$candidate"; return 0; }
+  echo 'Bun security gate: no package.json was found below /workspace.' >&2
+  return 1
+}
+
+copy_active_tool_versions() {
+  local search_dir="$PWD"
+  while [[ "$search_dir" == /workspace || "$search_dir" == /workspace/* ]]; do
+    if [[ -f "$search_dir/.tool-versions" ]]; then cp "$search_dir/.tool-versions" "$1/.tool-versions"; return 0; fi
+    [[ "$search_dir" == /workspace ]] && break
+    search_dir="$(dirname "$search_dir")"
+  done
+}
+
+copy_manifests() {
+  local source_dir="$1" target_dir="$2" file relative_path
+  for file in bun.lock bun.lockb bunfig.toml .npmrc; do
+    [[ -f "$source_dir/$file" ]] && cp "$source_dir/$file" "$target_dir/$file"
+  done
+  while IFS= read -r -d '' file; do
+    relative_path="${file#"$source_dir"/}"
+    mkdir -p "$target_dir/$(dirname "$relative_path")"
+    cp "$file" "$target_dir/$relative_path"
+  done < <(find "$source_dir" \( -path "$source_dir/.git" -o -path "$source_dir/node_modules" \) -prune -o -name package.json -type f -print0)
+}
+
+resolution_arguments() {
+  local argument skip_next=0
+  for argument in "$@"; do
+    if [[ "$skip_next" == 1 ]]; then skip_next=0; continue; fi
+    case "$argument" in
+      --frozen-lockfile|--lockfile-only|--ignore-scripts|--offline) ;;
+      --cwd) skip_next=1 ;;
+      *) printf '%s\0' "$argument" ;;
+    esac
+  done
+}
+
+scan_resolution() {
+  local command_name="$1"
+  shift
+  local root temporary_root scan_status=0 argument lockfile
+  local -a sanitized_args=()
+  root="$(workspace_root)"
+  temporary_root="$(mktemp -d)"
+  copy_active_tool_versions "$temporary_root"
+  copy_manifests "$root" "$temporary_root"
+  while IFS= read -r -d '' argument; do sanitized_args+=("$argument"); done < <(resolution_arguments "$@")
+  (
+    cd "$temporary_root"
+    run_bun "$command_name" --lockfile-only --ignore-scripts "${sanitized_args[@]}"
+    if [[ -f bun.lock ]]; then lockfile=bun.lock; elif [[ -f bun.lockb ]]; then lockfile=bun.lockb; else
+      echo 'Bun security gate: resolution did not produce a Bun lockfile.' >&2
+      exit 1
+    fi
+    docker-dev-trivy-gate scan-lock "$temporary_root/$lockfile"
+    [[ -z "$audit_severity" ]] || run_bun audit --audit-level="$audit_severity"
+  ) || scan_status=$?
+  rm -rf "$temporary_root"
+  return "$scan_status"
+}
+
+read_bun_config
+
+case "${1:-}" in
+  install|i)
+    command_name="$1"; shift
+    scan_resolution "$command_name" "$@"
+    [[ "$ignore_scripts" == 1 ]] && set -- "$@" --ignore-scripts
+    run_bun "$command_name" "$@"
+    ;;
+  add|a|update)
+    command_name="$1"; shift
+    scan_resolution "$command_name" "$@"
+    [[ "$ignore_scripts" == 1 ]] && set -- "$@" --ignore-scripts
+    run_bun "$command_name" "$@"
+    ;;
+  *) run_bun "$@" ;;
+esac

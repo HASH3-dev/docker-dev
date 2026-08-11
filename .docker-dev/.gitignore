@@ -1,0 +1,4 @@
+# >>> docker-dev managed local files >>>
+docker-dev
+.docker-dev-state.json
+# <<< docker-dev managed local files <<<

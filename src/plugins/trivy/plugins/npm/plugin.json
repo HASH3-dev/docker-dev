@@ -4,6 +4,7 @@
   "kind": "package-manager-adapter",
   "summary": "Protects npm dependency installation with the Trivy gate.",
   "requiresRuntimes": ["nodejs"],
+  "configPath": "npm.config.json",
   "detect": {
     "files": ["package.json", "package-lock.json", "npm-shrinkwrap.json"]
   },
