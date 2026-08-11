@@ -6,7 +6,7 @@ readonly marker_file="/workspace/node_modules/.docker-dev-dependencies.sha256"
 dependency_digest() {
   find . \
     \( -path './.git' -o -path './node_modules' \) -prune -o \
-    \( -name package.json -o -name package-lock.json -o -name npm-shrinkwrap.json -o -name pnpm-lock.yaml -o -name yarn.lock -o -name .yarnrc -o -name .yarnrc.yml \) \
+    \( -name package.json -o -name bun.lock -o -name bun.lockb -o -name package-lock.json -o -name npm-shrinkwrap.json -o -name pnpm-lock.yaml -o -name yarn.lock -o -name .yarnrc -o -name .yarnrc.yml \) \
     -type f -print0 \
     | sort -z \
     | xargs -0 -r sha256sum \
@@ -25,7 +25,9 @@ if [[ "${1:-}" != '--force' ]] && [[ -f "$marker_file" ]] && [[ "$(<"$marker_fil
   exit 0
 fi
 
-if [[ -f pnpm-lock.yaml ]]; then
+if [[ -f bun.lock || -f bun.lockb ]]; then
+  bun install --frozen-lockfile
+elif [[ -f pnpm-lock.yaml ]]; then
   pnpm install --frozen-lockfile
 elif [[ -f yarn.lock ]]; then
   if [[ -f .yarnrc.yml ]]; then

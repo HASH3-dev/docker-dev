@@ -11,7 +11,7 @@ FROM debian:bookworm-slim
 COPY --from=asdf-builder /go/bin/asdf /usr/local/bin/asdf
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends apt-transport-https bash ca-certificates curl dirmngr gawk git gnupg gosu lsb-release tini wget \
+    && apt-get install -y --no-install-recommends apt-transport-https bash ca-certificates curl dirmngr gawk git gnupg gosu lsb-release tini unzip wget \
     && rm -rf /var/lib/apt/lists/*
 
 ARG DOCKER_DEV_PLUGINS=""

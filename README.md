@@ -101,7 +101,7 @@ docker-dev up --merge-compose --merge-file compose.dev.yml
 ```
 
 Quando os adaptadores de segurança do Trivy estiverem habilitados, comandos
-como `npm`, `pnpm`, `yarn` e `uv` também podem ser encaminhados pelo
+como `bun`, `npm`, `pnpm`, `yarn` e `uv` também podem ser encaminhados pelo
 `docker-dev` e executados no ambiente protegido.
 
 ## Configuração versionada

@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../../../../schemas/command.schema.json",
+  "name": "bun",
+  "args": "<project-relative-path> [bun-arguments...]",
+  "summary": "Run the protected Bun wrapper.",
+  "help": "Run Bun inside the protected development container.",
+  "steps": [
+    {
+      "call": {
+        "function": "runBunWrapper",
+        "args": ["$@"]
+      }
+    }
+  ]
+}

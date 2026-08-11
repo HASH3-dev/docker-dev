@@ -161,6 +161,27 @@ describe("materializeAssets", () => {
     await rm(directory, { recursive: true, force: true });
   });
 
+  test("preserves plugin configuration during an asset refresh", async () => {
+    const directory = "/tmp/docker-dev-plugin-config";
+    const config = join(
+      directory,
+      "plugins",
+      "trivy",
+      "plugins",
+      "bun",
+      "bun.config.json",
+    );
+    await rm(directory, { recursive: true, force: true });
+    await materializeAssets(directory);
+
+    expect(await readFile(config, "utf8")).toContain('"ignoreScripts": false');
+    await writeFile(config, '{"ignoreScripts":true}\n');
+    await materializeAssets(directory);
+
+    expect(await readFile(config, "utf8")).toBe('{"ignoreScripts":true}\n');
+    await rm(directory, { recursive: true, force: true });
+  });
+
   test("applies a plan atomically: ports, plugin selection and pruning", async () => {
     const directory = "/tmp/docker-dev-plan-materialize";
     await rm(directory, { recursive: true, force: true });
@@ -169,7 +190,7 @@ describe("materializeAssets", () => {
       ports: "DOCKER_DEV_PORTS=4000\n",
       pluginSelections: new Map([
         ["plugins/plugins.enabled", ["trivy"]],
-        ["plugins/trivy/plugins/plugins.enabled", ["npm"]],
+        ["plugins/trivy/plugins/plugins.enabled", ["bun"]],
       ]),
     });
 
@@ -180,7 +201,10 @@ describe("materializeAssets", () => {
       await readFile(join(directory, "plugins", "plugins.enabled"), "utf8"),
     ).toContain("trivy");
     expect(
-      existsSync(join(directory, "plugins", "trivy", "plugins", "npm")),
+      existsSync(join(directory, "plugins", "trivy", "plugins", "bun")),
+    ).toBe(true);
+    expect(
+      existsSync(join(directory, "plugins", "trivy", "plugins", "bun", "bun.config.json")),
     ).toBe(true);
     expect(
       existsSync(join(directory, "plugins", "trivy", "plugins", "pnpm")),
