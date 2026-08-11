@@ -31,6 +31,10 @@ jobs:
       - name: Build distribution binaries
         run: bun run build:all
 
+      - name: Extract changelog section
+        run: |
+          awk '/^## /{if (n++) exit} n' CHANGELOG.md > RELEASE_NOTES.md
+
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -42,4 +46,4 @@ jobs:
           dist/docker-dev-darwin-arm64
           dist/docker-dev-windows-x64.exe
           --title "docker-dev ${GITHUB_REF_NAME}"
-          --generate-notes
+          --notes-file RELEASE_NOTES.md

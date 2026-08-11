@@ -28,10 +28,11 @@ Para verificar os artefatos de distribuição:
 bun run build:all
 ```
 
-Para publicar uma versão, use `bun run release`. O script exige uma árvore Git
-limpa e um remoto `origin`, pergunta a nova versão SemVer e só então cria o
-commit, a tag anotada e o push. Não atualize a versão manualmente ao preparar
-uma release regular.
+O versionamento é automático via [release-please](https://github.com/googleapis/release-please):
+commits `feat:`/`fix:`/etc mergeados na `main` alimentam um PR
+`chore(main): release X.Y.Z` que mantém `package.json`, `CHANGELOG.md` e a
+tag em dia. Basta revisar e mergear esse PR — a tag dispara o build e a
+publicação da release no GitHub. Não atualize a versão manualmente.
 
 Os binários são escritos em `dist/`; dependências, o diretório `dist/` e os
 assets incorporados em `.generated/` não devem ser versionados.
