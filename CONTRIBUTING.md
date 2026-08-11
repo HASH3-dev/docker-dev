@@ -127,9 +127,21 @@ Princípios importantes:
 - `detect.files` permite pré-selecionar plugins compatíveis com o projeto.
 - `container.environment` e `container.volumes` são combinados em
   `.plugins.generated.yml`; não declare valores ou destinos conflitantes.
-- Use `plugins.directory` para habilitar subplugins de forma recursiva.
 - Mantenha código de comandos no executável; os assets copiados para o projeto
   devem conter somente o necessário para executar o plugin no host ou imagem.
+
+### Convenções fixas (sem configuração)
+
+Estes nomes são convenção do ecossistema e não podem ser customizados no
+manifest:
+
+- Subplugins ficam em uma pasta `plugins/` dentro do plugin pai — sua simples
+  existência habilita a recursão. A seleção correspondente fica em
+  `plugins/plugins.enabled`.
+- O script de instalação na imagem, se existir, sempre se chama
+  `image-install.sh` na raiz do plugin.
+- Comandos de um plugin ficam em `commands/<nome>/command.json` (+
+  `command.ts` opcional), no mesmo padrão de `src/commands`.
 
 Ao modificar um plugin, verifique tanto o fluxo de seleção quanto a geração do
 Compose. Adicione testes para regras de seleção, conflitos ou recursos de

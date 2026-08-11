@@ -6,6 +6,5 @@
   "requiresRuntimes": ["python"],
   "detect": {
     "files": ["pyproject.toml", "uv.lock"]
-  },
-  "imageInstall": "image-install.sh"
+  }
 }

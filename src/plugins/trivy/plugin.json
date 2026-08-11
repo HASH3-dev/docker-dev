@@ -2,10 +2,5 @@
   "$schema": "../../schemas/plugin.schema.json",
   "name": "trivy",
   "kind": "security-gate",
-  "summary": "Provides vulnerability scanning for package-manager adapters.",
-  "imageInstall": "image-install.sh",
-  "plugins": {
-    "directory": "adapters",
-    "enabledFile": "plugins.enabled"
-  }
+  "summary": "Provides vulnerability scanning for package-manager plugins."
 }

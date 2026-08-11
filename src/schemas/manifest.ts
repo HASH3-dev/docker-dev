@@ -21,15 +21,12 @@ export interface PluginManifest {
   name: string;
   kind: string;
   summary: string;
-  imageInstall?: string;
-  commandsDirectory?: string;
   requiresRuntimes?: string[];
   detect?: { files: string[] };
   container?: {
     environment?: Record<string, string>;
     volumes?: Array<{ name: string; target: string }>;
   };
-  plugins?: { directory: string; enabledFile?: string };
   hooks?: Record<string, string>;
 }
 
