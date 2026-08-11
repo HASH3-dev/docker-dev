@@ -1,14 +1,13 @@
 {
   "$schema": "../../../../schemas/plugin.schema.json",
-  "name": "pnpm",
+  "name": "yarn",
   "kind": "package-manager-adapter",
-  "summary": "Protects pnpm dependency installation with the Trivy gate.",
+  "summary": "Protects Yarn dependency installation with the Trivy gate.",
   "requiresRuntimes": ["nodejs"],
   "detect": {
-    "files": ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml"]
+    "files": ["package.json", "yarn.lock", ".yarnrc.yml"]
   },
   "container": {
     "volumes": [{ "name": "node_modules", "target": "/workspace/node_modules" }]
-  },
-  "imageInstall": "image-install.sh"
+  }
 }

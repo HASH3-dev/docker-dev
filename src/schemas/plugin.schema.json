@@ -9,8 +9,6 @@
     "name": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
     "kind": { "type": "string", "minLength": 1 },
     "summary": { "type": "string", "minLength": 1 },
-    "imageInstall": { "type": "string" },
-    "commandsDirectory": { "type": "string", "default": "commands" },
     "requiresRuntimes": {
       "type": "array",
       "items": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$" },
@@ -49,19 +47,6 @@
               "target": { "type": "string", "pattern": "^/[A-Za-z0-9._/-]+$" }
             }
           }
-        }
-      }
-    },
-    "plugins": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["directory"],
-      "properties": {
-        "directory": { "type": "string", "pattern": "^[A-Za-z0-9._/-]+$" },
-        "enabledFile": {
-          "type": "string",
-          "pattern": "^[A-Za-z0-9._/-]+$",
-          "default": "plugins.enabled"
         }
       }
     },

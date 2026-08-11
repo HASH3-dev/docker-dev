@@ -15,6 +15,5 @@
       { "name": "node_modules", "target": "/workspace/node_modules" },
       { "name": "npm_cache", "target": "/npm-cache" }
     ]
-  },
-  "imageInstall": "image-install.sh"
+  }
 }

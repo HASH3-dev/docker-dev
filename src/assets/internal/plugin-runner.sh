@@ -3,11 +3,6 @@ set -euo pipefail
 
 readonly plugins_root='/opt/docker-dev/plugins'
 
-manifest_value() {
-  local manifest="$1" key="$2"
-  sed -n "s/.*\"${key}\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" "$manifest" | head -n 1
-}
-
 manifest_hook() {
   local manifest="$1" hook="$2"
   sed -n "s/.*\"${hook}\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" "$manifest" | head -n 1
@@ -32,13 +27,13 @@ run_phase() {
   local phase="$1"
   local directory="$2"
   local manifest="$directory/plugin.json"
-  local script children_path children_file child
+  local script children_path child
   [[ -f "$manifest" ]] || { echo "Plugin manifest not found: $manifest" >&2; return 1; }
 
   case "$phase" in
     image-install)
-      script="$(manifest_value "$manifest" imageInstall)"
-      [[ -z "$script" ]] || bash "$directory/$script"
+      script="$directory/image-install.sh"
+      [[ ! -f "$script" ]] || bash "$script"
       ;;
     run-hook)
       script="$(manifest_hook "$manifest" "${3:-}")"
@@ -46,13 +41,11 @@ run_phase() {
       ;;
   esac
 
-  children_path="$(manifest_value "$manifest" directory)"
-  [[ -n "$children_path" ]] || return 0
-  children_file="$directory/$(manifest_value "$manifest" enabledFile)"
-  [[ "$children_file" != "$directory/" ]] || children_file="$directory/plugins.enabled"
+  children_path="$directory/plugins"
+  [[ -d "$children_path" ]] || return 0
   while IFS= read -r child; do
-    run_phase "$phase" "$directory/$children_path/$child" "${3:-}"
-  done < <(enabled_ids "$directory/$children_path" "$children_file")
+    run_phase "$phase" "$children_path/$child" "${3:-}"
+  done < <(enabled_ids "$children_path" "$children_path/plugins.enabled")
 }
 
 run_selected() {

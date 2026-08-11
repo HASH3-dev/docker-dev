@@ -57,7 +57,7 @@ Os aliases TypeScript disponíveis são:
 
 ```ts
 import { compose } from "@lib/compose";
-import { prunePlugins } from "@internal/plugins";
+import { planPlugins, prunePlugins } from "@internal/plugins";
 ```
 
 ## Comandos
@@ -72,11 +72,18 @@ Cada comando fica em `src/commands/<nome>/command.json`. O schema aceita:
 Mantenha o texto de `help` orientado ao usuário e descreva efeitos relevantes,
 especialmente alterações no host, volumes e remoção de recursos.
 
+Comandos de núcleo e de plugins são descobertos automaticamente por
+`scripts/generate-command-registry.ts`, que varre `command.json` em
+`src/commands` e `src/plugins` e gera `.generated/command-registry.ts`. Não
+há registro manual: basta criar a pasta `commands/<nome>/command.json` (com
+`command.ts` opcional) no local correspondente.
+
 ## Assets e atualização
 
 Os arquivos em `src/assets` são incorporados ao executável por
-`scripts/generate-embedded-assets.ts`. Rode `bun run assets:generate` quando
-precisar inspecionar a saída; `check` e `build` já a executam automaticamente.
+`scripts/generate-embedded-assets.ts`. Rode `bun run generate` quando
+precisar inspecionar a saída de assets e comandos; `check` e `build` já a
+executam automaticamente.
 
 `materializeAssets` protege alterações locais em arquivos gerenciados usando
 `.docker-dev-state.json`. Não altere esse estado manualmente nem o use como
@@ -87,11 +94,50 @@ configuração do projeto: a materialização os preserva durante atualizações
 template de `custom-compose.yml` é aplicado após a base, plugins e portas; um
 `--merge-file` explícito tem precedência ainda maior.
 
+## Setup: coleta em memória, aplicação atômica
+
+`docker-dev setup` (`src/commands/setup/command.ts`) é dividido em duas fases
+e essa separação deve ser preservada em qualquer mudança no fluxo:
+
+- **Coleta** — `planPorts`, `planToolVersions` e `planVersionFile`
+  (`src/commands/setup/plan.ts`) e `planPlugins`
+  (`src/internal/plugins.ts`) só leem o disco e fazem prompts; nada é escrito.
+  Cada uma delas é idempotente: se a configuração já existir e for válida
+  (`ports.env`, `.tool-versions`, `plugins.enabled` em cada nível,
+  `.docker-dev-version`), o valor existente é reaproveitado sem reabrir o
+  prompt.
+- **Aplicação** — de posse do plano completo, `materializeAssets` recebe um
+  `AssetPlan` (`{ ports, pluginSelections }`) e escreve `.docker-dev` inteiro
+  numa única troca atômica (`.docker-dev.next` → `rename`), já com portas e
+  seleção de plugins aplicadas e podadas. `.tool-versions` e
+  `.docker-dev-version` são gravados na sequência, também na fase de
+  aplicação.
+
+Não adicione `writeFile`/`mkdir` a uma função de "plan": se um prompt for
+cancelado (Ctrl+C) durante a coleta, nenhum arquivo deve ter sido criado ou
+alterado no projeto do usuário. `configurePlugins`/`configureLevel` (que
+escreviam durante o prompt) não existem mais — a leitura de manifests durante
+a coleta usa `embeddedPluginManifests`, que lê os plugins embutidos no
+executável (`.generated/embedded-assets`) em memória, sem depender de
+`.docker-dev` já materializado.
+
+Comandos não-interativos que reaplicam assets (ex.: `rebuild`, via a ação
+`refreshAssets`) continuam chamando `materializeAssets` sem `AssetPlan` — nesse
+modo o comportamento é o mesmo de antes: copia `ports.env`/`plugins.enabled`
+existentes e a poda é feita depois por `prunePlugins`.
+
 ## Plugins
 
 Um plugin é uma pasta em `src/plugins` com `plugin.json`. Seus manifests são
 validados pelo JSON Schema em `src/schemas/plugin.schema.json`; atualize também
 o tipo em `src/schemas/manifest.ts` sempre que expandir o schema.
+
+Durante o `setup`, a seleção de plugins (`planPlugins`) lê os manifests a
+partir de `.generated/embedded-assets` em memória (`embeddedPluginManifests`),
+não do `.docker-dev` do projeto de teste. Depois de criar ou alterar um
+`plugin.json`, rode `bun run generate` (ou `bun run assets:generate`) antes de
+testar o `setup` localmente, senão o plugin novo/alterado não aparece no
+seletor.
 
 Exemplo reduzido:
 
@@ -127,9 +173,21 @@ Princípios importantes:
 - `detect.files` permite pré-selecionar plugins compatíveis com o projeto.
 - `container.environment` e `container.volumes` são combinados em
   `.plugins.generated.yml`; não declare valores ou destinos conflitantes.
-- Use `plugins.directory` para habilitar subplugins de forma recursiva.
 - Mantenha código de comandos no executável; os assets copiados para o projeto
   devem conter somente o necessário para executar o plugin no host ou imagem.
+
+### Convenções fixas (sem configuração)
+
+Estes nomes são convenção do ecossistema e não podem ser customizados no
+manifest:
+
+- Subplugins ficam em uma pasta `plugins/` dentro do plugin pai — sua simples
+  existência habilita a recursão. A seleção correspondente fica em
+  `plugins/plugins.enabled`.
+- O script de instalação na imagem, se existir, sempre se chama
+  `image-install.sh` na raiz do plugin.
+- Comandos de um plugin ficam em `commands/<nome>/command.json` (+
+  `command.ts` opcional), no mesmo padrão de `src/commands`.
 
 Ao modificar um plugin, verifique tanto o fluxo de seleção quanto a geração do
 Compose. Adicione testes para regras de seleção, conflitos ou recursos de
