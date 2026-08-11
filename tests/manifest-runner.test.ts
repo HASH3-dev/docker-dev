@@ -5,9 +5,11 @@ import { join } from "node:path";
 import { parseCommandManifest } from "../src/schemas/manifest";
 import {
   generatePluginOverride,
+  portsOverride,
   resolveInfrastructureCompose,
 } from "@lib/compose";
 import { createContext } from "@lib/context";
+import { parsePortList } from "@lib/ports";
 import { runManifest } from "@internal/command-runner";
 import { ActionRegistry } from "@internal/registry";
 import { materializeAssets } from "@internal/assets";
@@ -135,6 +137,31 @@ describe("generatePluginOverride", () => {
   });
 });
 
+describe("ports", () => {
+  test("accepts an empty port list", () => {
+    expect(parsePortList("")).toEqual([]);
+    expect(parsePortList("  ")).toEqual([]);
+  });
+
+  test("writes no ports when ports.env is empty", async () => {
+    const directory = "/tmp/docker-dev-empty-ports";
+    await rm(directory, { recursive: true, force: true });
+    await mkdir(directory, { recursive: true });
+    await writeFile(join(directory, "ports.env"), "DOCKER_DEV_PORTS=\n");
+
+    const target = await portsOverride({
+      projectRoot: directory,
+      dockerDevDirectory: directory,
+      interactive: false,
+      commandArguments: [],
+      commandOptions: {},
+    });
+
+    expect(await readFile(target, "utf8")).toBe("services:\n  dev: {}\n");
+    await rm(directory, { recursive: true, force: true });
+  });
+});
+
 describe("materializeAssets", () => {
   test("preserves project configuration during an asset refresh", async () => {
     const directory = "/tmp/docker-dev-plugin-selection";
@@ -230,6 +257,17 @@ describe("setup plan (idempotency)", () => {
     await writeFile(join(directory, "ports.env"), "DOCKER_DEV_PORTS=5000\n");
 
     expect(await planPorts(directory)).toBe("DOCKER_DEV_PORTS=5000\n");
+
+    await rm(directory, { recursive: true, force: true });
+  });
+
+  test("planPorts reuses an empty port configuration", async () => {
+    const directory = "/tmp/docker-dev-plan-empty-ports";
+    await rm(directory, { recursive: true, force: true });
+    await mkdir(directory, { recursive: true });
+    await writeFile(join(directory, "ports.env"), "DOCKER_DEV_PORTS=\n");
+
+    expect(await planPorts(directory)).toBe("DOCKER_DEV_PORTS=\n");
 
     await rm(directory, { recursive: true, force: true });
   });

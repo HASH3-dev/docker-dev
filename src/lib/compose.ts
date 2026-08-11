@@ -32,18 +32,19 @@ async function configuredPorts(context: CommandContext): Promise<string[]> {
   }
 }
 
-async function portsOverride(context: CommandContext): Promise<string> {
+export async function portsOverride(context: CommandContext): Promise<string> {
   const ports = await configuredPorts(context);
-  const content =
-    [
-      "services:",
-      "  dev:",
-      "    ports:",
-      ...ports.map((value) => {
-        const [host, container = host] = value.split(":");
-        return `      - \"127.0.0.1:${host}:${container}\"`;
-      }),
-    ].join("\n") + "\n";
+  const content = ports.length
+    ? [
+        "services:",
+        "  dev:",
+        "    ports:",
+        ...ports.map((value) => {
+          const [host, container = host] = value.split(":");
+          return `      - \"127.0.0.1:${host}:${container}\"`;
+        }),
+      ].join("\n") + "\n"
+    : "services:\n  dev: {}\n";
   const target = join(context.dockerDevDirectory, ".ports.generated.yml");
   await mkdir(context.dockerDevDirectory, { recursive: true });
   await writeFile(target, content);

@@ -12,7 +12,8 @@ export interface Write {
 function portsContent(ports: string): string {
   return [
     "# Comma-separated host:container mappings published only on localhost.",
-    "# A plain port maps to itself. Example: DOCKER_DEV_PORTS=3000,3002:3001,5173",
+    "# A plain port maps to itself. Leave empty to publish no ports.",
+    "# Example: DOCKER_DEV_PORTS=3000,3002:3001,5173",
     `DOCKER_DEV_PORTS=${ports}`,
     "",
   ].join("\n");
@@ -29,7 +30,7 @@ export async function planPorts(dockerDevDirectory: string): Promise<string> {
       .find((line) => line.startsWith("DOCKER_DEV_PORTS="))
       ?.slice("DOCKER_DEV_PORTS=".length);
 
-    if (configured) {
+    if (configured !== undefined) {
       try {
         parsePortList(configured);
         return existing;
@@ -40,7 +41,7 @@ export async function planPorts(dockerDevDirectory: string): Promise<string> {
   }
 
   p.note(
-    "Development ports are published only to localhost. Use commas for multiple ports and host:container to avoid conflicts.\nExample: 3000,3002:3001,5173",
+    "Development ports are published only to localhost. Leave empty to publish none. Use commas for multiple ports and host:container to avoid conflicts.\nExample: 3000,3002:3001,5173",
     "Published ports",
   );
 
