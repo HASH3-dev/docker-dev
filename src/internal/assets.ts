@@ -10,10 +10,12 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import packageManifest from "../../package.json";
 import { embeddedAssets } from "../../.generated/embedded-assets";
 
 const stateName = ".docker-dev-state.json";
-const version = "0.1.0";
+const version = packageManifest.version;
+const selectionMarker = "# docker-dev managed plugin selection";
 type State = { version: string; hashes: Record<string, string> };
 const hash = (data: Uint8Array) =>
   createHash("sha256").update(data).digest("hex");
@@ -23,7 +25,66 @@ const isProjectConfiguration = (path: string) =>
   path === "ports.env" ||
   path === "custom-compose.yml";
 
-export async function materializeAssets(directory: string): Promise<void> {
+/** A fully-decided setup configuration, applied atomically by materializeAssets. */
+export interface AssetPlan {
+  /** Final contents of .docker-dev/ports.env. */
+  ports: string;
+  /** plugins.enabled path (relative to .docker-dev) -> chosen plugin names, for every level. */
+  pluginSelections: Map<string, string[]>;
+}
+
+function pluginSelectionContent(names: readonly string[]): string {
+  return `${selectionMarker}\n${names.join("\n")}${names.length ? "\n" : ""}`;
+}
+
+/** Whether an embedded asset path survives the plan's plugin selection. */
+function isPluginAssetIncluded(
+  path: string,
+  pluginSelections: Map<string, string[]>,
+): boolean {
+  if (!path.startsWith("plugins/")) {
+    return true;
+  }
+
+  if (path === "plugins/README.md") {
+    return false;
+  }
+
+  let prefix = "plugins";
+  let rest = path.slice(prefix.length + 1);
+
+  for (;;) {
+    if (!rest.includes("/")) {
+      // A file directly under this level (plugins.enabled handled separately).
+      return true;
+    }
+
+    const [pluginName, ...tail] = rest.split("/");
+    const selected = pluginSelections.get(`${prefix}/plugins.enabled`) ?? [];
+
+    if (!pluginName || !selected.includes(pluginName)) {
+      return false;
+    }
+
+    const pluginRest = tail.join("/");
+
+    if (pluginRest === "README.md" || pluginRest.startsWith("commands/")) {
+      return false;
+    }
+
+    if (!pluginRest.startsWith("plugins/")) {
+      return true;
+    }
+
+    prefix = `${prefix}/${pluginName}/plugins`;
+    rest = pluginRest.slice("plugins/".length);
+  }
+}
+
+export async function materializeAssets(
+  directory: string,
+  plan?: AssetPlan,
+): Promise<void> {
   const statePath = join(directory, stateName);
   let previous: State | undefined;
   try {
@@ -77,9 +138,22 @@ export async function materializeAssets(directory: string): Promise<void> {
   await rm(temporary, { recursive: true, force: true });
   const hashes: Record<string, string> = {};
   for (const asset of embeddedAssets) {
+    if (plan && !isPluginAssetIncluded(asset.path, plan.pluginSelections)) {
+      continue;
+    }
+
     const target = join(temporary, asset.path);
-    const data = Buffer.from(asset.data, "base64");
     await mkdir(dirname(target), { recursive: true });
+
+    if (plan && isPluginSelection(asset.path)) {
+      const names = plan.pluginSelections.get(asset.path) ?? [];
+      await writeFile(target, pluginSelectionContent(names), {
+        mode: asset.mode,
+      });
+      continue;
+    }
+
+    const data = Buffer.from(asset.data, "base64");
 
     if (isProjectConfiguration(asset.path)) {
       try {
@@ -93,6 +167,11 @@ export async function materializeAssets(directory: string): Promise<void> {
     await writeFile(target, data, { mode: asset.mode });
     await chmod(target, asset.mode);
     hashes[asset.path] = hash(data);
+  }
+  if (plan) {
+    const portsTarget = join(temporary, "ports.env");
+    await mkdir(dirname(portsTarget), { recursive: true });
+    await writeFile(portsTarget, plan.ports);
   }
   await writeFile(
     join(temporary, stateName),

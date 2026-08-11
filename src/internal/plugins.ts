@@ -1,7 +1,8 @@
 import * as p from "@clack/prompts";
 import { existsSync } from "node:fs";
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { readdir, readFile, rm } from "node:fs/promises";
+import { join } from "node:path";
+import { embeddedAssets } from "../../.generated/embedded-assets";
 import { parsePluginManifest, type PluginManifest } from "../schemas/manifest";
 
 const selectionMarker = "# docker-dev managed plugin selection";
@@ -24,6 +25,38 @@ async function readSelection(file: string): Promise<Selection> {
   } catch {
     return { ids: [], managed: false };
   }
+}
+
+/** Reads plugin manifests directly from the embedded assets, without touching disk. */
+function embeddedPluginManifests(prefix: string): PluginManifest[] {
+  const marker = `${prefix}/`;
+  const children = new Map<string, string>();
+
+  for (const asset of embeddedAssets) {
+    if (!asset.path.startsWith(marker)) continue;
+
+    const rest = asset.path.slice(marker.length);
+    const [child, ...tail] = rest.split("/");
+
+    if (child && tail.join("/") === "plugin.json") {
+      children.set(child, asset.path);
+    }
+  }
+
+  return [...children.entries()].map(([name, path]) => {
+    const asset = embeddedAssets.find((entry) => entry.path === path)!;
+    const manifest = parsePluginManifest(
+      JSON.parse(Buffer.from(asset.data, "base64").toString("utf8")),
+    );
+
+    if (manifest.name !== name) {
+      throw new Error(
+        `Plugin manifest name does not match its directory: ${name}`,
+      );
+    }
+
+    return manifest;
+  });
 }
 
 async function manifests(directory: string): Promise<PluginManifest[]> {
@@ -67,106 +100,114 @@ function isDetected(plugin: PluginManifest, projectRoot: string): boolean {
   );
 }
 
-async function choose(
-  directory: string,
-  enabledFile: string,
-  label: string,
-  projectRoot: string,
-  runtimes: ReadonlySet<string>,
-): Promise<PluginManifest[]> {
-  const available = (await manifests(directory)).filter((plugin) =>
-    supportsRuntimes(plugin, runtimes),
-  );
-  const selection = await readSelection(enabledFile);
-
-  if (!available.length) {
-    return [];
-  }
-
-  const selected = selection.ids.filter((id) =>
-    available.some((plugin) => plugin.name === id),
-  );
-  const initialValues = selection.managed
-    ? selected
-    : [
-        ...new Set([
-          ...selected,
-          ...available
-            .filter((plugin) => isDetected(plugin, projectRoot))
-            .map((plugin) => plugin.name),
-        ]),
-      ];
-  const answer = await p.multiselect({
-    message: `Select plugins for ${label}`,
-    initialValues,
-    options: available.map((plugin) => ({
-      value: plugin.name,
-      label: plugin.name,
-      hint: plugin.summary,
-    })),
-    required: false,
-  });
-
-  if (p.isCancel(answer)) {
-    throw new Error("Plugin selection cancelled.");
-  }
-
-  const chosen = available.filter((plugin) => answer.includes(plugin.name));
-  await mkdir(dirname(enabledFile), { recursive: true });
-  await writeFile(
-    enabledFile,
-    `${selectionMarker}\n# Plugins selected by docker-dev setup for ${label}.\n${chosen.map((plugin) => plugin.name).join("\n")}\n`,
-  );
-
-  return chosen;
+function hasSubplugins(prefix: string): boolean {
+  const marker = `${prefix}/plugins/`;
+  return embeddedAssets.some((asset) => asset.path.startsWith(marker));
 }
 
-async function configureLevel(
-  directory: string,
-  enabledFile: string,
+/**
+ * Decides which plugins are selected at one level of the tree, prompting only
+ * when no selection is already recorded on disk. Never writes to disk.
+ *
+ * `prefix` is the path of this level relative to `.docker-dev` (matching
+ * embedded asset paths, e.g. "plugins" or "plugins/trivy/plugins"); the plan
+ * map is keyed by that same relative convention so materializeAssets can
+ * match it against embedded asset paths.
+ */
+async function planLevel(
+  prefix: string,
+  dockerDevDirectory: string,
   label: string,
   projectRoot: string,
   runtimes: ReadonlySet<string>,
+  plan: Map<string, string[]>,
 ): Promise<void> {
-  const selected = await choose(
-    directory,
-    enabledFile,
-    label,
-    projectRoot,
-    runtimes,
+  const available = embeddedPluginManifests(prefix).filter((plugin) =>
+    supportsRuntimes(plugin, runtimes),
   );
 
-  for (const plugin of selected) {
-    if (!plugin.plugins) {
+  if (!available.length) {
+    return;
+  }
+
+  const relativeEnabledFile = `${prefix}/plugins.enabled`;
+  const diskEnabledFile = join(dockerDevDirectory, ...prefix.split("/"), "plugins.enabled");
+  const selection = await readSelection(diskEnabledFile);
+  let chosen: PluginManifest[];
+
+  if (existsSync(diskEnabledFile)) {
+    const selected = new Set(selection.ids);
+    chosen = available.filter((plugin) => selected.has(plugin.name));
+  } else {
+    const initialValues = [
+      ...new Set(
+        available
+          .filter((plugin) => isDetected(plugin, projectRoot))
+          .map((plugin) => plugin.name),
+      ),
+    ];
+    const answer = await p.multiselect({
+      message: `Select plugins for ${label}`,
+      initialValues,
+      options: available.map((plugin) => ({
+        value: plugin.name,
+        label: plugin.name,
+        hint: plugin.summary,
+      })),
+      required: false,
+    });
+
+    if (p.isCancel(answer)) {
+      throw new Error("Plugin selection cancelled.");
+    }
+
+    chosen = available.filter((plugin) => answer.includes(plugin.name));
+  }
+
+  plan.set(
+    relativeEnabledFile,
+    chosen.map((plugin) => plugin.name),
+  );
+
+  for (const plugin of chosen) {
+    const pluginPrefix = `${prefix}/${plugin.name}`;
+
+    if (!hasSubplugins(pluginPrefix)) {
       continue;
     }
 
-    const pluginDirectory = join(directory, plugin.name);
-    await configureLevel(
-      join(pluginDirectory, plugin.plugins.directory),
-      join(pluginDirectory, plugin.plugins.enabledFile ?? "plugins.enabled"),
+    await planLevel(
+      `${pluginPrefix}/plugins`,
+      dockerDevDirectory,
       plugin.name,
       projectRoot,
       runtimes,
+      plan,
     );
   }
 }
 
-/** Interactively selects plugins compatible with the configured runtimes. */
-export async function configurePlugins(
+/**
+ * Interactively plans plugin selection compatible with the configured
+ * runtimes, reusing any selection already recorded in `.docker-dev`. Returns
+ * a map of the `plugins.enabled` path (relative to `.docker-dev`) to the
+ * chosen plugin names for that level; nothing is written to disk.
+ */
+export async function planPlugins(
   dockerDevDirectory: string,
   projectRoot: string,
   runtimes: readonly string[],
-): Promise<void> {
-  const pluginsDirectory = join(dockerDevDirectory, "plugins");
-
-  await configureLevel(
-    pluginsDirectory,
-    join(pluginsDirectory, "plugins.enabled"),
+): Promise<Map<string, string[]>> {
+  const plan = new Map<string, string[]>();
+  await planLevel(
+    "plugins",
+    dockerDevDirectory,
     "docker-dev",
     projectRoot,
     new Set(runtimes),
+    plan,
   );
+  return plan;
 }
 
 async function pruneLevel(
@@ -188,10 +229,6 @@ async function pruneLevel(
       continue;
     }
 
-    const manifest = parsePluginManifest(
-      JSON.parse(await readFile(join(pluginDirectory, "plugin.json"), "utf8")),
-    );
-
     // Command handlers run from the compiled executable and do not belong in
     // the host project or the Docker build context.
     await rm(join(pluginDirectory, "commands"), {
@@ -200,13 +237,10 @@ async function pruneLevel(
     });
     await rm(join(pluginDirectory, "README.md"), { force: true });
 
-    if (manifest.plugins) {
+    if (existsSync(join(pluginDirectory, "plugins"))) {
       await pruneLevel(
-        join(pluginDirectory, manifest.plugins.directory),
-        join(
-          pluginDirectory,
-          manifest.plugins.enabledFile ?? "plugins.enabled",
-        ),
+        join(pluginDirectory, "plugins"),
+        join(pluginDirectory, "plugins", "plugins.enabled"),
       );
     }
   }
@@ -229,14 +263,15 @@ async function selectedPluginManifests(
   const selected = available.filter((plugin) => enabled.has(plugin.name));
   const nested = await Promise.all(
     selected.map(async (plugin) => {
-      if (!plugin.plugins) {
+      const pluginDirectory = join(directory, plugin.name);
+
+      if (!existsSync(join(pluginDirectory, "plugins"))) {
         return [];
       }
 
-      const pluginDirectory = join(directory, plugin.name);
       return selectedPluginManifests(
-        join(pluginDirectory, plugin.plugins.directory),
-        join(pluginDirectory, plugin.plugins.enabledFile ?? "plugins.enabled"),
+        join(pluginDirectory, "plugins"),
+        join(pluginDirectory, "plugins", "plugins.enabled"),
       );
     }),
   );
