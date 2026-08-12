@@ -63,7 +63,7 @@ jobs:
           TAG: ${{ steps.tag.outputs.name }}
         run: |
           awk '/^## /{if (n++) exit} n' CHANGELOG.md > RELEASE_NOTES.md
-          gh release create "$TAG" --draft --title "docker-dev $TAG" --notes-file RELEASE_NOTES.md
+          gh release create "$TAG" --draft --title "$TAG" --notes-file RELEASE_NOTES.md
 
       - name: Upload release binaries
         env:
