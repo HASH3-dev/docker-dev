@@ -1,9 +1,11 @@
 name: Release docker-dev
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_call:
+    inputs:
+      tag_name:
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -16,6 +18,8 @@ jobs:
     steps:
       - name: Check out the release tag
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag_name }}
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -31,19 +35,13 @@ jobs:
       - name: Build distribution binaries
         run: bun run build:all
 
-      - name: Extract changelog section
-        run: |
-          awk '/^## /{if (n++) exit} n' CHANGELOG.md > RELEASE_NOTES.md
-
-      - name: Publish GitHub Release
+      - name: Upload release binaries
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
-          gh release create "${GITHUB_REF_NAME}"
+          gh release upload "${{ inputs.tag_name }}"
           dist/docker-dev-linux-x64
           dist/docker-dev-linux-arm64
           dist/docker-dev-darwin-x64
           dist/docker-dev-darwin-arm64
           dist/docker-dev-windows-x64.exe
-          --title "docker-dev ${GITHUB_REF_NAME}"
-          --notes-file RELEASE_NOTES.md
