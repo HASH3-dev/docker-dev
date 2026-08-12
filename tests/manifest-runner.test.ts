@@ -18,6 +18,14 @@ import {
   planToolVersions,
   planVersionFile,
 } from "../src/commands/setup/plan";
+import { shouldStartFreshShell } from "../src/commands/setup/command";
+
+describe("setup fresh shell", () => {
+  test("starts one fresh shell but does not nest one created by setup", () => {
+    expect(shouldStartFreshShell({})).toBe(true);
+    expect(shouldStartFreshShell({ DOCKER_DEV_FRESH_SHELL: "1" })).toBe(false);
+  });
+});
 
 describe("runManifest", () => {
   test("expands $@ without evaluating input", async () => {

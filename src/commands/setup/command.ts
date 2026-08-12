@@ -17,6 +17,14 @@ import { start, runPluginHook } from "@lib/compose";
 import { planPorts, planToolVersions, planVersionFile } from "./plan";
 export default manifest;
 
+const freshShellEnvironmentKey = "DOCKER_DEV_FRESH_SHELL";
+
+export function shouldStartFreshShell(
+  environment: Readonly<Record<string, string | undefined>> = process.env,
+): boolean {
+  return environment[freshShellEnvironmentKey] !== "1";
+}
+
 async function startFreshShell(projectRoot: string): Promise<void> {
   const shell = process.env.SHELL ?? "/bin/bash";
 
@@ -35,6 +43,7 @@ async function startFreshShell(projectRoot: string): Promise<void> {
 
   const shellProcess = Bun.spawn([shell, "-l"], {
     cwd: projectRoot,
+    env: { ...process.env, [freshShellEnvironmentKey]: "1" },
     stdin: "inherit",
     stdout: "inherit",
     stderr: "inherit",
@@ -121,10 +130,11 @@ export function register(registry: ActionRegistry): void {
 
     await runPluginHook(context, "post-asdf");
 
-    p.outro(
-      "docker-dev is ready. Open a new terminal to load the direnv hook.",
-    );
-
-    await startFreshShell(context.projectRoot);
+    if (shouldStartFreshShell()) {
+      p.outro("docker-dev is ready. Starting a fresh shell with direnv enabled.");
+      await startFreshShell(context.projectRoot);
+    } else {
+      p.outro("docker-dev is ready. The current fresh shell will reload direnv at its next prompt.");
+    }
   });
 }
