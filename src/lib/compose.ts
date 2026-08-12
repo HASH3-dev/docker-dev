@@ -266,13 +266,6 @@ export async function compose(
 }
 
 export async function start(context: CommandContext): Promise<void> {
-  const services = await compose(context, [
-    "ps",
-    "--status",
-    "running",
-    "--services",
-  ]);
-  if (services.split("\n").includes("dev")) return;
   await compose(context, ["up", "--detach", "--build"]);
 }
 
