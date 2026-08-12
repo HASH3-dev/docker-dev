@@ -50,7 +50,7 @@ jobs:
         id: tag
         run: |
           version="$(bun -e 'console.log((await Bun.file("package.json").json()).version)')"
-          tag="docker-dev-v$version"
+          tag="v$version"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "$tag" -m "Release $tag"
