@@ -1,4 +1,4 @@
 {
-  "ignoreScripts": false,
-  "blockOnAuditSeverity": ""
+  "ignoreScripts": true,
+  "blockOnAuditSeverity": "high"
 }

@@ -195,10 +195,16 @@ export async function materializeAssets(
     await chmod(target, asset.mode);
     hashes[asset.path] = hash(data);
   }
+  const portsTarget = join(temporary, "ports.env");
+  await mkdir(dirname(portsTarget), { recursive: true });
   if (plan) {
-    const portsTarget = join(temporary, "ports.env");
-    await mkdir(dirname(portsTarget), { recursive: true });
     await writeFile(portsTarget, plan.ports);
+  } else {
+    try {
+      await copyFile(join(directory, "ports.env"), portsTarget);
+    } catch {
+      // No ports.env yet outside of setup; nothing to preserve.
+    }
   }
   await writeFile(
     join(temporary, stateName),
