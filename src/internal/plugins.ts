@@ -150,6 +150,7 @@ async function planLevel(
   projectRoot: string,
   runtimes: ReadonlySet<string>,
   plan: Map<string, string[]>,
+  force: boolean,
 ): Promise<void> {
   const available = embeddedPluginManifests(prefix).filter((plugin) =>
     supportsRuntimes(plugin, runtimes),
@@ -164,7 +165,7 @@ async function planLevel(
   const selection = await readSelection(diskEnabledFile);
   let chosen: PluginManifest[];
 
-  if (existsSync(diskEnabledFile)) {
+  if (!force && existsSync(diskEnabledFile)) {
     const selected = new Set(selection.ids);
     chosen = available.filter((plugin) => selected.has(plugin.name));
   } else {
@@ -212,20 +213,23 @@ async function planLevel(
       projectRoot,
       runtimes,
       plan,
+      force,
     );
   }
 }
 
 /**
  * Interactively plans plugin selection compatible with the configured
- * runtimes, reusing any selection already recorded in `.docker-dev`. Returns
- * a map of the `plugins.enabled` path (relative to `.docker-dev`) to the
- * chosen plugin names for that level; nothing is written to disk.
+ * runtimes, reusing any selection already recorded in `.docker-dev` unless
+ * `force` is set. Returns a map of the `plugins.enabled` path (relative to
+ * `.docker-dev`) to the chosen plugin names for that level; nothing is
+ * written to disk.
  */
 export async function planPlugins(
   dockerDevDirectory: string,
   projectRoot: string,
   runtimes: readonly string[],
+  force = false,
 ): Promise<Map<string, string[]>> {
   const plan = new Map<string, string[]>();
   await planLevel(
@@ -235,6 +239,7 @@ export async function planPlugins(
     projectRoot,
     new Set(runtimes),
     plan,
+    force,
   );
   return plan;
 }

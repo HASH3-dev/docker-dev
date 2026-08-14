@@ -1,8 +1,14 @@
 {
   "$schema": "../../schemas/command.schema.json",
   "name": "setup",
+  "options": [
+    {
+      "flags": "--force",
+      "description": "Redo the full setup plan: reprompt for ports, .tool-versions and plugin selection instead of reusing existing configuration."
+    }
+  ],
   "summary": "Configure docker-dev for the current project.",
-  "help": "Configures docker-dev for the current project. After explicit confirmation, it creates or updates .docker-dev, lets you select plugins recursively, configures published ports, and configures the selected runtimes.\n\nThe setup also configures direnv on the host: it installs direnv when necessary, adds one managed hook to the current shell's startup file, creates the managed .envrc entrypoint, and authorizes it. It never replaces an existing unmanaged .envrc.\n\nFinally, docker-dev starts the development container, installs the declared asdf runtimes and runs enabled post-asdf plugin hooks. Open a new terminal after setup so the direnv hook is available.",
+  "help": "Configures docker-dev for the current project. After explicit confirmation, it creates or updates .docker-dev, lets you select plugins recursively, configures published ports, and configures the selected runtimes.\n\nThe setup also configures direnv on the host: it installs direnv when necessary, adds one managed hook to the current shell's startup file, creates the managed .envrc entrypoint, and authorizes it. It never replaces an existing unmanaged .envrc.\n\nFinally, docker-dev starts the development container, installs the declared asdf runtimes and runs enabled post-asdf plugin hooks. Open a new terminal after setup so the direnv hook is available.\n\nUse --force to redo the full setup plan and reprompt for ports, .tool-versions and plugin selection instead of reusing what is already configured.",
   "steps": [
     {
       "call": {
