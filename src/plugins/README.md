@@ -46,6 +46,12 @@ editá-lo livremente. Para ler o config a partir de um `command.ts`, use
 `readPluginConfig` de `@internal/plugins`, passando o caminho do plugin
 relativo a `.docker-dev` (ex.: `"plugins/trivy/plugins/npm"`).
 
+Um plugin também pode declarar `output.file` para um arquivo local gerado no
+diretório do plugin. Quando `shared` é omitido ou `false`, o arquivo entra no
+bloco gerenciado de `.docker-dev/.gitignore`; use `shared: true` só para output
+que deve ser versionado. Use `pluginOutputPath`, `readPluginOutput` e
+`writePluginOutput` de `@internal/plugins` para acessar esse arquivo.
+
 ## Subplugins
 
 Um plugin pai pode declarar plugins internos com `plugins.directory`. Se não
