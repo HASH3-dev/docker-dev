@@ -12,6 +12,7 @@ import { createContext } from "@lib/context";
 import { parsePortList } from "@lib/ports";
 import { runManifest } from "@internal/command-runner";
 import { ActionRegistry } from "@internal/registry";
+import { registerInternalActions } from "@internal/actions";
 import { materializeAssets } from "@internal/assets";
 import {
   planPorts,
@@ -19,6 +20,7 @@ import {
   planVersionFile,
 } from "../src/commands/setup/plan";
 import { shouldStartFreshShell } from "../src/commands/setup/command";
+import packageManifest from "../package.json";
 
 describe("setup fresh shell", () => {
   test("starts one fresh shell but does not nest one created by setup", () => {
@@ -217,6 +219,35 @@ describe("materializeAssets", () => {
     await rm(directory, { recursive: true, force: true });
   });
 
+  test("adopts a tracked tree missing local installation state", async () => {
+    const directory = "/tmp/docker-dev-adopt-state-less";
+    await rm(directory, { recursive: true, force: true });
+    await materializeAssets(directory);
+    await writeFile(
+      join(directory, ".gitignore"),
+      "# >>> docker-dev managed local files >>>\ndocker-dev\n.docker-dev-state.json\n# <<< docker-dev managed local files <<<\n",
+    );
+    await rm(join(directory, ".docker-dev-state.json"));
+
+    await materializeAssets(directory);
+
+    expect(existsSync(join(directory, ".docker-dev-state.json"))).toBe(true);
+    await rm(directory, { recursive: true, force: true });
+  });
+
+  test("refuses a non-empty directory without docker-dev local state marker", async () => {
+    const directory = "/tmp/docker-dev-unmanaged";
+    await rm(directory, { recursive: true, force: true });
+    await mkdir(directory, { recursive: true });
+    await writeFile(join(directory, "Dockerfile"), "FROM scratch\n");
+
+    await expect(materializeAssets(directory)).rejects.toThrow(
+      ".docker-dev is not managed by docker-dev v2; refusing to replace it.",
+    );
+
+    await rm(directory, { recursive: true, force: true });
+  });
+
   test("applies a plan atomically: ports, plugin selection and pruning", async () => {
     const directory = "/tmp/docker-dev-plan-materialize";
     await rm(directory, { recursive: true, force: true });
@@ -257,6 +288,33 @@ describe("materializeAssets", () => {
   });
 });
 
+describe("refreshAssets action", () => {
+  test("refuses a stale .docker-dev-version", async () => {
+    const project = "/tmp/docker-dev-refresh-assets-version";
+    await rm(project, { recursive: true, force: true });
+    await mkdir(project, { recursive: true });
+    await writeFile(join(project, ".docker-dev-version"), "0.0.1\n");
+
+    const registry = new ActionRegistry();
+    registerInternalActions(registry);
+
+    const context = {
+      ...createContext([]),
+      projectRoot: project,
+      dockerDevDirectory: join(project, ".docker-dev"),
+    };
+    await expect(registry.get("refreshAssets")(context, [])).rejects.toThrow(
+      "Run: docker-dev update",
+    );
+    expect(await readFile(join(project, ".docker-dev-version"), "utf8")).toBe(
+      "0.0.1\n",
+    );
+    expect(existsSync(context.dockerDevDirectory)).toBe(false);
+
+    await rm(project, { recursive: true, force: true });
+  });
+});
+
 describe("setup plan (idempotency)", () => {
   test("planPorts reuses an existing valid ports.env without prompting", async () => {
     const directory = "/tmp/docker-dev-plan-ports";
@@ -294,11 +352,14 @@ describe("setup plan (idempotency)", () => {
     await rm(project, { recursive: true, force: true });
   });
 
-  test("planVersionFile skips an existing .docker-dev-version", async () => {
+  test("planVersionFile skips an existing .docker-dev-version already matching the binary version", async () => {
     const project = "/tmp/docker-dev-plan-version-file";
     await rm(project, { recursive: true, force: true });
     await mkdir(project, { recursive: true });
-    await writeFile(join(project, ".docker-dev-version"), "0.1.0\n");
+    await writeFile(
+      join(project, ".docker-dev-version"),
+      `${packageManifest.version}\n`,
+    );
 
     expect(planVersionFile(project)).toBeNull();
 
@@ -317,4 +378,16 @@ describe("setup plan (idempotency)", () => {
 
     await rm(project, { recursive: true, force: true });
   });
+
+  test("planVersionFile preserves an existing .docker-dev-version", async () => {
+    const project = "/tmp/docker-dev-plan-version-file-stale";
+    await rm(project, { recursive: true, force: true });
+    await mkdir(project, { recursive: true });
+    await writeFile(join(project, ".docker-dev-version"), "0.0.1\n");
+
+    expect(planVersionFile(project)).toBeNull();
+
+    await rm(project, { recursive: true, force: true });
+  });
+
 });
