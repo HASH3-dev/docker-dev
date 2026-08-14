@@ -1,5 +1,6 @@
-gitleaks
-bearer
-semgrep
 # docker-dev managed plugin selection
+1password
+semgrep
+bearer
+gitleaks
 trivy
