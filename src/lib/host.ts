@@ -206,9 +206,10 @@ export async function allowManagedDirenv(
 /** Links the project-local entrypoint to the executable that ran setup. */
 export async function ensureProjectExecutable(
   dockerDevDirectory: string,
+  extraIgnoredPaths: readonly string[] = [],
 ): Promise<void> {
   await mkdir(dockerDevDirectory, { recursive: true });
-  await ensureProjectExecutableIsIgnored(dockerDevDirectory);
+  await ensureProjectExecutableIsIgnored(dockerDevDirectory, extraIgnoredPaths);
 
   const link = join(dockerDevDirectory, "docker-dev");
   const executable = await realpath(process.execPath);
@@ -241,12 +242,14 @@ export async function ensureProjectExecutable(
 
 async function ensureProjectExecutableIsIgnored(
   dockerDevDirectory: string,
+  extraIgnoredPaths: readonly string[],
 ): Promise<void> {
   const gitignore = join(dockerDevDirectory, ".gitignore");
   const contents = existsSync(gitignore)
     ? await Bun.file(gitignore).text()
     : "";
-  const managedRule = `${dockerDevGitignoreRuleStart}\n${dockerDevLocalFiles.join("\n")}\n${dockerDevGitignoreRuleEnd}`;
+  const ignoredPaths = [...dockerDevLocalFiles, ...extraIgnoredPaths];
+  const managedRule = `${dockerDevGitignoreRuleStart}\n${ignoredPaths.join("\n")}\n${dockerDevGitignoreRuleEnd}`;
 
   if (contents.includes(dockerDevGitignoreRuleStart)) {
     const start = contents.indexOf(dockerDevGitignoreRuleStart);
