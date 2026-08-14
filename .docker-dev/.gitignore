@@ -3,3 +3,4 @@ docker-dev
 .docker-dev-state.json
 # <<< docker-dev managed local files <<<
 reports/semgrep.json
+reports/bearer.json

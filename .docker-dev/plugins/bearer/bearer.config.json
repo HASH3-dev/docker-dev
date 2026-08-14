@@ -1,0 +1,3 @@
+{
+  "failOnSeverity": ["critical", "high"]
+}
