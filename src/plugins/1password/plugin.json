@@ -1,0 +1,6 @@
+{
+  "$schema": "../../schemas/plugin.schema.json",
+  "name": "1password",
+  "kind": "secrets-provider",
+  "summary": "Resolves 1Password secrets into a single command's environment via op run."
+}
