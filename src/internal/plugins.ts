@@ -1,7 +1,7 @@
 import * as p from "@clack/prompts";
 import { existsSync } from "node:fs";
-import { readdir, readFile, rm } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { embeddedAssets } from "../../.generated/embedded-assets";
 import { parsePluginManifest, type PluginManifest } from "../schemas/manifest";
 
@@ -110,6 +110,55 @@ export async function readPluginConfig<T = unknown>(
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Resolves a plugin's declared output file to an absolute host path,
+ * following `output.file` from its `plugin.json`. Returns undefined if the
+ * plugin declares no `output`.
+ */
+export async function pluginOutputPath(
+  dockerDevDirectory: string,
+  pluginRelativeDir: string,
+): Promise<string | undefined> {
+  const pluginDirectory = join(dockerDevDirectory, ...pluginRelativeDir.split("/"));
+  const manifest = parsePluginManifest(
+    JSON.parse(await readFile(join(pluginDirectory, "plugin.json"), "utf8")),
+  );
+
+  return manifest.output
+    ? join(pluginDirectory, manifest.output.file)
+    : undefined;
+}
+
+/** Reads and parses a plugin's declared output file. Returns undefined if it declares no `output` or the file does not exist yet. */
+export async function readPluginOutput<T = unknown>(
+  dockerDevDirectory: string,
+  pluginRelativeDir: string,
+): Promise<T | undefined> {
+  const path = await pluginOutputPath(dockerDevDirectory, pluginRelativeDir);
+  if (!path) return undefined;
+
+  try {
+    return JSON.parse(await readFile(path, "utf8")) as T;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Writes a plugin's declared output file, creating its parent directory as needed. */
+export async function writePluginOutput(
+  dockerDevDirectory: string,
+  pluginRelativeDir: string,
+  content: string,
+): Promise<void> {
+  const path = await pluginOutputPath(dockerDevDirectory, pluginRelativeDir);
+  if (!path) {
+    throw new Error(`Plugin ${pluginRelativeDir} declares no output file.`);
+  }
+
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, content);
 }
 
 function supportsRuntimes(
@@ -321,5 +370,56 @@ export async function collectSelectedPluginManifests(
   return selectedPluginManifests(
     pluginsDirectory,
     join(pluginsDirectory, "plugins.enabled"),
+  );
+}
+
+async function selectedPluginOutputPaths(
+  directory: string,
+  enabledFile: string,
+  pluginsRelativePrefix: string,
+): Promise<string[]> {
+  const enabled = new Set((await readSelection(enabledFile)).ids);
+  const available = await manifests(directory);
+  const selected = available.filter((plugin) => enabled.has(plugin.name));
+  const nested = await Promise.all(
+    selected.map(async (plugin) => {
+      const pluginDirectory = join(directory, plugin.name);
+      const pluginRelativePrefix = `${pluginsRelativePrefix}/${plugin.name}`;
+      const own =
+        plugin.output && plugin.output.shared !== true
+          ? [`${pluginRelativePrefix}/${plugin.output.file}`]
+          : [];
+
+      if (!existsSync(join(pluginDirectory, "plugins"))) {
+        return own;
+      }
+
+      return [
+        ...own,
+        ...(await selectedPluginOutputPaths(
+          join(pluginDirectory, "plugins"),
+          join(pluginDirectory, "plugins", "plugins.enabled"),
+          `${pluginRelativePrefix}/plugins`,
+        )),
+      ];
+    }),
+  );
+
+  return nested.flat();
+}
+
+/**
+ * Paths (relative to .docker-dev) of every selected plugin's non-shared
+ * output file, including recursively selected children. Used to keep
+ * `.docker-dev/.gitignore` in sync with the plugins currently enabled.
+ */
+export async function collectSelectedPluginOutputPaths(
+  dockerDevDirectory: string,
+): Promise<string[]> {
+  const pluginsDirectory = join(dockerDevDirectory, "plugins");
+  return selectedPluginOutputPaths(
+    pluginsDirectory,
+    join(pluginsDirectory, "plugins.enabled"),
+    "plugins",
   );
 }

@@ -2,7 +2,7 @@ import manifest from "./command.json";
 import * as p from "@clack/prompts";
 import { writeFile } from "node:fs/promises";
 import { materializeAssets } from "@internal/assets";
-import { planPlugins } from "@internal/plugins";
+import { collectSelectedPluginOutputPaths, planPlugins } from "@internal/plugins";
 import type { ActionRegistry } from "@internal/registry";
 import {
   allowManagedDirenv,
@@ -109,7 +109,10 @@ export function register(registry: ActionRegistry): void {
       ports,
       pluginSelections,
     });
-    await ensureProjectExecutable(context.dockerDevDirectory);
+    await ensureProjectExecutable(
+      context.dockerDevDirectory,
+      await collectSelectedPluginOutputPaths(context.dockerDevDirectory),
+    );
 
     if (toolVersionsPlan.write) {
       await writeFile(
