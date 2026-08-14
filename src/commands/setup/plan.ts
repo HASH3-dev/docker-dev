@@ -20,10 +20,13 @@ function portsContent(ports: string): string {
 }
 
 /** Decides the final contents of .docker-dev/ports.env, prompting only when unset. */
-export async function planPorts(dockerDevDirectory: string): Promise<string> {
+export async function planPorts(
+  dockerDevDirectory: string,
+  force = false,
+): Promise<string> {
   const portsFile = join(dockerDevDirectory, "ports.env");
 
-  if (existsSync(portsFile)) {
+  if (!force && existsSync(portsFile)) {
     const existing = await Bun.file(portsFile).text();
     const configured = existing
       .split("\n")
@@ -83,10 +86,11 @@ export interface ToolVersionsPlan {
 /** Decides .tool-versions contents, prompting only when the project has none. */
 export async function planToolVersions(
   projectRoot: string,
+  force = false,
 ): Promise<ToolVersionsPlan> {
   const toolVersions = join(projectRoot, ".tool-versions");
 
-  if (existsSync(toolVersions)) {
+  if (!force && existsSync(toolVersions)) {
     const contents = await Bun.file(toolVersions).text();
     return { runtimes: configuredRuntimes(contents), write: null };
   }
@@ -146,7 +150,7 @@ export async function planToolVersions(
   };
 }
 
-/** Decides whether .docker-dev-version needs to be created. */
+/** Decides whether initial setup needs to create .docker-dev-version. */
 export function planVersionFile(projectRoot: string): Write | null {
   const versionFile = join(projectRoot, ".docker-dev-version");
 
