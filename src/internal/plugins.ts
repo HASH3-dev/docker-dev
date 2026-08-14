@@ -1,7 +1,7 @@
 import * as p from "@clack/prompts";
 import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { dirname, join, normalize } from "node:path";
+import { dirname, join } from "node:path";
 import { embeddedAssets } from "../../.generated/embedded-assets";
 import { parsePluginManifest, type PluginManifest } from "../schemas/manifest";
 
@@ -114,8 +114,8 @@ export async function readPluginConfig<T = unknown>(
 
 /**
  * Resolves a plugin's declared output file to an absolute host path,
- * following `output.file` from its `plugin.json`, relative to `.docker-dev`.
- * Returns undefined if the plugin declares no `output`.
+ * following `output.file` from its `plugin.json`. Returns undefined if the
+ * plugin declares no `output`.
  */
 export async function pluginOutputPath(
   dockerDevDirectory: string,
@@ -199,7 +199,6 @@ async function planLevel(
   projectRoot: string,
   runtimes: ReadonlySet<string>,
   plan: Map<string, string[]>,
-  force: boolean,
 ): Promise<void> {
   const available = embeddedPluginManifests(prefix).filter((plugin) =>
     supportsRuntimes(plugin, runtimes),
@@ -214,7 +213,7 @@ async function planLevel(
   const selection = await readSelection(diskEnabledFile);
   let chosen: PluginManifest[];
 
-  if (!force && existsSync(diskEnabledFile)) {
+  if (existsSync(diskEnabledFile)) {
     const selected = new Set(selection.ids);
     chosen = available.filter((plugin) => selected.has(plugin.name));
   } else {
@@ -262,23 +261,20 @@ async function planLevel(
       projectRoot,
       runtimes,
       plan,
-      force,
     );
   }
 }
 
 /**
  * Interactively plans plugin selection compatible with the configured
- * runtimes, reusing any selection already recorded in `.docker-dev` unless
- * `force` is set. Returns a map of the `plugins.enabled` path (relative to
- * `.docker-dev`) to the chosen plugin names for that level; nothing is
- * written to disk.
+ * runtimes, reusing any selection already recorded in `.docker-dev`. Returns
+ * a map of the `plugins.enabled` path (relative to `.docker-dev`) to the
+ * chosen plugin names for that level; nothing is written to disk.
  */
 export async function planPlugins(
   dockerDevDirectory: string,
   projectRoot: string,
   runtimes: readonly string[],
-  force = false,
 ): Promise<Map<string, string[]>> {
   const plan = new Map<string, string[]>();
   await planLevel(
@@ -288,7 +284,6 @@ export async function planPlugins(
     projectRoot,
     new Set(runtimes),
     plan,
-    force,
   );
   return plan;
 }
@@ -387,7 +382,7 @@ async function selectedPluginOutputPaths(
       const pluginRelativePrefix = `${pluginsRelativePrefix}/${plugin.name}`;
       const own =
         plugin.output && plugin.output.shared !== true
-          ? [normalize(`${pluginRelativePrefix}/${plugin.output.file}`)]
+          ? [`${pluginRelativePrefix}/${plugin.output.file}`]
           : [];
 
       if (!existsSync(join(pluginDirectory, "plugins"))) {
