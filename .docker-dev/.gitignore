@@ -4,3 +4,4 @@ docker-dev
 # <<< docker-dev managed local files <<<
 reports/semgrep.json
 reports/bearer.json
+reports/gitleaks.json
