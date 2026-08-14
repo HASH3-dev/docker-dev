@@ -1,7 +1,7 @@
 import * as p from "@clack/prompts";
 import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, normalize } from "node:path";
 import { embeddedAssets } from "../../.generated/embedded-assets";
 import { parsePluginManifest, type PluginManifest } from "../schemas/manifest";
 
@@ -114,8 +114,8 @@ export async function readPluginConfig<T = unknown>(
 
 /**
  * Resolves a plugin's declared output file to an absolute host path,
- * following `output.file` from its `plugin.json`. Returns undefined if the
- * plugin declares no `output`.
+ * following `output.file` from its `plugin.json`, relative to `.docker-dev`.
+ * Returns undefined if the plugin declares no `output`.
  */
 export async function pluginOutputPath(
   dockerDevDirectory: string,
@@ -387,7 +387,7 @@ async function selectedPluginOutputPaths(
       const pluginRelativePrefix = `${pluginsRelativePrefix}/${plugin.name}`;
       const own =
         plugin.output && plugin.output.shared !== true
-          ? [`${pluginRelativePrefix}/${plugin.output.file}`]
+          ? [normalize(`${pluginRelativePrefix}/${plugin.output.file}`)]
           : [];
 
       if (!existsSync(join(pluginDirectory, "plugins"))) {

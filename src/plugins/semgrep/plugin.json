@@ -1,0 +1,8 @@
+{
+  "$schema": "../../schemas/plugin.schema.json",
+  "name": "semgrep",
+  "kind": "sast",
+  "summary": "Static analysis of source code with Semgrep.",
+  "configPath": "semgrep.config.json",
+  "output": { "file": "../../reports/semgrep.json" }
+}

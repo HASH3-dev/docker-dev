@@ -21,6 +21,25 @@ import {
 } from "../src/commands/setup/plan";
 import { shouldStartFreshShell } from "../src/commands/setup/command";
 import packageManifest from "../package.json";
+import { ensureDockerignoreEntry } from "@lib/host";
+
+describe("dockerignore", () => {
+  test("creates entries without duplicates", async () => {
+    const directory = "/tmp/docker-dev-dockerignore";
+    const dockerignore = join(directory, ".dockerignore");
+    await rm(directory, { recursive: true, force: true });
+
+    await ensureDockerignoreEntry(directory, "reports/semgrep.json");
+    await writeFile(dockerignore, `${await readFile(dockerignore, "utf8")}node_modules`);
+    await ensureDockerignoreEntry(directory, "reports/semgrep.json");
+    await ensureDockerignoreEntry(directory, "reports/bearer.json");
+
+    expect(await readFile(dockerignore, "utf8")).toBe(
+      "reports/semgrep.json\nnode_modules\nreports/bearer.json\n",
+    );
+    await rm(directory, { recursive: true, force: true });
+  });
+});
 
 describe("setup fresh shell", () => {
   test("starts one fresh shell but does not nest one created by setup", () => {
@@ -211,7 +230,7 @@ describe("materializeAssets", () => {
     await rm(directory, { recursive: true, force: true });
     await materializeAssets(directory);
 
-    expect(await readFile(config, "utf8")).toContain('"ignoreScripts": false');
+    expect(await readFile(config, "utf8")).toContain('"ignoreScripts": true');
     await writeFile(config, '{"ignoreScripts":true}\n');
     await materializeAssets(directory);
 

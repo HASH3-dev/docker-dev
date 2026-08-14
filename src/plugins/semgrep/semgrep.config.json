@@ -1,0 +1,5 @@
+{
+  "config": "p/ci",
+  "severity": ["ERROR"],
+  "metricsOff": true
+}
