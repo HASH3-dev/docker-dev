@@ -15,6 +15,7 @@ import { embeddedAssets } from "../../.generated/embedded-assets";
 import { parsePluginManifest } from "../schemas/manifest";
 
 const stateName = ".docker-dev-state.json";
+const managedLocalFilesMarker = "# >>> docker-dev managed local files >>>";
 const version = packageManifest.version;
 const selectionMarker = "# docker-dev managed plugin selection";
 type State = { version: string; hashes: Record<string, string> };
@@ -105,6 +106,16 @@ function isPluginAssetIncluded(
   }
 }
 
+/** Whether this is a tracked docker-dev tree missing only local installation state. */
+async function canAdopt(directory: string): Promise<boolean> {
+  try {
+    const gitignore = await readFile(join(directory, ".gitignore"), "utf8");
+    return gitignore.includes(managedLocalFilesMarker);
+  } catch {
+    return false;
+  }
+}
+
 export async function materializeAssets(
   directory: string,
   plan?: AssetPlan,
@@ -121,7 +132,10 @@ export async function materializeAssets(
   }
   if (!previous) {
     try {
-      if ((await readdir(directory)).length > 0)
+      if (
+        (await readdir(directory)).length > 0 &&
+        !(await canAdopt(directory))
+      )
         throw new Error(
           ".docker-dev is not managed by docker-dev v2; refusing to replace it.",
         );
