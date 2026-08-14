@@ -1,2 +1,3 @@
 # Plugins selected by docker-dev setup for docker-dev.
 trivy
+semgrep

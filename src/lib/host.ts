@@ -204,6 +204,24 @@ export async function allowManagedDirenv(
 }
 
 /** Links the project-local entrypoint to the executable that ran setup. */
+export async function ensureDockerignoreEntry(
+  dockerDevDirectory: string,
+  entry: string,
+): Promise<void> {
+  await mkdir(dockerDevDirectory, { recursive: true });
+  const dockerignore = join(dockerDevDirectory, ".dockerignore");
+  const contents = existsSync(dockerignore)
+    ? await Bun.file(dockerignore).text()
+    : "";
+
+  if (contents.split("\n").includes(entry)) {
+    return;
+  }
+
+  const separator = contents.length > 0 && !contents.endsWith("\n") ? "\n" : "";
+  await appendFile(dockerignore, `${separator}${entry}\n`);
+}
+
 export async function ensureProjectExecutable(
   dockerDevDirectory: string,
   extraIgnoredPaths: readonly string[] = [],

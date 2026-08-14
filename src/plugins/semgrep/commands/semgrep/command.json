@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../../schemas/command.schema.json",
+  "name": "semgrep",
+  "args": "[path]",
+  "summary": "Scan a project path for code vulnerabilities with Semgrep.",
+  "help": "Scans the selected project path inside the development container. The default path is the project root. Writes a JSON report to .docker-dev/reports/semgrep.json and exits with a non-zero status when Semgrep finds issues at the configured severity.",
+  "steps": [
+    {
+      "call": {
+        "function": "scanSemgrepPath",
+        "args": ["$@"]
+      }
+    }
+  ]
+}
