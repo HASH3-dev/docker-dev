@@ -1,0 +1,24 @@
+{
+  "$schema": "../../schemas/command.schema.json",
+  "name": "update",
+  "args": "[version]",
+  "options": [
+    {
+      "flags": "--list",
+      "description": "List available GitHub releases."
+    },
+    {
+      "flags": "--check",
+      "description": "Show running, pinned and latest versions."
+    }
+  ],
+  "summary": "Install or inspect docker-dev versions.",
+  "help": "Installs the version pinned in .docker-dev-version, or an explicit version. Use --list to list GitHub releases or --check to compare running, pinned and latest versions.",
+  "steps": [
+    {
+      "call": {
+        "function": "update"
+      }
+    }
+  ]
+}

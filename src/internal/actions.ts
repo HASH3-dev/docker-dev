@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { installAsdfTools } from "@lib/asdf";
 import { compose, execInDev, runPluginHook, start } from "@lib/compose";
 import { ensureProjectExecutable } from "@lib/host";
+import { requireMatchingVersion } from "@lib/update";
 import { materializeAssets } from "./assets";
 import { prunePlugins } from "./plugins";
 import type { ActionRegistry } from "./registry";
@@ -31,6 +32,7 @@ export function registerInternalActions(registry: ActionRegistry): void {
   });
 
   registry.register("refreshAssets", async (context) => {
+    await requireMatchingVersion(context.projectRoot);
     await materializeAssets(context.dockerDevDirectory);
     await ensureProjectExecutable(context.dockerDevDirectory);
     await prunePlugins(context.dockerDevDirectory);

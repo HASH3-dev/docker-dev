@@ -48,6 +48,28 @@ curl -fsSL https://raw.githubusercontent.com/HASH3-dev/docker-dev/main/scripts/i
 
 No Windows, execute o comando acima dentro do WSL 2.
 
+Após versionar `.docker-dev-version`, atualize o binário fixado no projeto com:
+
+```bash
+docker-dev update
+```
+
+`docker-dev update 0.7.0` instala uma versão específica e atualiza o pin pelo
+mesmo script. O pin só muda após instalação bem-sucedida. Se o projeto tiver
+`scripts/install.sh`, ele é usado; caso contrário, o comando usa o script
+remoto acima.
+
+`setup` e `rebuild` recusam executar quando versão do binário não corresponde a
+`.docker-dev-version`; execute `docker-dev update` para instalar versão fixada.
+
+```bash
+# Lista releases disponíveis no GitHub.
+docker-dev update --list
+
+# Mostra versão do binário, versão fixada e última release.
+docker-dev update --check
+```
+
 ## Primeiro uso
 
 No diretório raiz do projeto que receberá o ambiente:
@@ -84,6 +106,9 @@ docker-dev logs
 
 # Recria a imagem e o container.
 docker-dev rebuild
+
+# Instala versão fixada em .docker-dev-version.
+docker-dev update
 
 # Para o ambiente e remove os volumes do docker-dev.
 docker-dev reset

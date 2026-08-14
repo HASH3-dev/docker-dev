@@ -10,10 +10,11 @@ target_dir="$PWD"
 version_file_path="$target_dir/$VERSION_FILE"
 
 version="${1:-}"
+write_version_file=false
 
 if [ -n "$version" ]; then
-  echo "$version" > "$version_file_path"
-  echo "Using version $version (from argument), wrote $VERSION_FILE"
+  write_version_file=true
+  echo "Using version $version from argument"
 elif [ -f "$version_file_path" ]; then
   version="$(tr -d '[:space:]' < "$version_file_path")"
   echo "Using version $version from existing $VERSION_FILE"
@@ -24,8 +25,8 @@ else
     echo "Failed to determine version from $PKG_JSON_URL" >&2
     exit 1
   fi
-  echo "$version" > "$version_file_path"
-  echo "Using version $version (from remote package.json), wrote $VERSION_FILE"
+  write_version_file=true
+  echo "Using version $version from remote package.json"
 fi
 
 tag="v${version#v}"
@@ -53,6 +54,11 @@ echo "Downloading ${asset} (${tag})..."
 curl -fsSL "$url" -o "$tmp"
 chmod +x "$tmp"
 mv "$tmp" "$target_dir/$BIN_NAME"
+
+if [ "$write_version_file" = true ]; then
+  echo "$version" > "$version_file_path"
+  echo "Wrote $VERSION_FILE"
+fi
 
 echo "Installed $BIN_NAME $version to $target_dir/$BIN_NAME"
 

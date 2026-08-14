@@ -15,6 +15,7 @@ import { installAsdfTools } from "@lib/asdf";
 import { run } from "@lib/process";
 import { start, runPluginHook } from "@lib/compose";
 import { planPorts, planToolVersions, planVersionFile } from "./plan";
+import { requireMatchingVersion } from "@lib/update";
 export default manifest;
 
 const freshShellEnvironmentKey = "DOCKER_DEV_FRESH_SHELL";
@@ -61,6 +62,8 @@ export function register(registry: ActionRegistry): void {
       throw new Error("Setup requires an interactive terminal.");
     }
 
+    const force = context.commandOptions.force === true;
+
     p.intro("docker-dev setup");
     p.note(
       [
@@ -68,7 +71,9 @@ export function register(registry: ActionRegistry): void {
         "- install direnv with the host package manager when it is missing;",
         "- add one managed direnv hook to your shell startup file;",
         "- create and authorize the project .envrc entrypoint;",
-        "- create .tool-versions when the project does not have one;",
+        force
+          ? "- reconfigure .tool-versions, ports and plugin selection from scratch;"
+          : "- create .tool-versions when the project does not have one;",
         "- create .docker-dev-version when the project does not have one.",
         "\nNo application source code is changed.",
       ].join("\n"),
@@ -84,15 +89,18 @@ export function register(registry: ActionRegistry): void {
       throw new Error("Setup cancelled.");
     }
 
+    await requireMatchingVersion(context.projectRoot);
+
     // Collection phase: prompts and reads only. Nothing is written to disk
     // yet, so a cancellation here leaves the project untouched.
     const versionFilePlan = planVersionFile(context.projectRoot);
-    const ports = await planPorts(context.dockerDevDirectory);
-    const toolVersionsPlan = await planToolVersions(context.projectRoot);
+    const ports = await planPorts(context.dockerDevDirectory, force);
+    const toolVersionsPlan = await planToolVersions(context.projectRoot, force);
     const pluginSelections = await planPlugins(
       context.dockerDevDirectory,
       context.projectRoot,
       toolVersionsPlan.runtimes,
+      force,
     );
 
     // Application phase: everything above is already decided, so this is the
