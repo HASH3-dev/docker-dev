@@ -5,14 +5,18 @@ readonly trivy_severity="${TRIVY_SEVERITY:-HIGH,CRITICAL}"
 
 scan_target() {
   local target="$1"
+  local output="${2:-}"
   [[ -e "$target" ]] || { echo "Trivy gate target not found: $target" >&2; return 2; }
   echo "Security gate: scanning with Trivy (${trivy_severity})..." >&2
-  trivy fs --quiet --scanners vuln --severity "$trivy_severity" --exit-code 1 "$target"
+  local -a options=(fs --quiet --scanners vuln --severity "$trivy_severity" --exit-code 1)
+  [[ -n "$output" ]] && options+=(--format json --output "$output")
+  trivy "${options[@]}" "$target"
 }
 
 usage() {
   cat <<'EOF'
-Usage: docker-dev-trivy-gate <scan-lock|scan-path> <path>
+Usage: docker-dev-trivy-gate scan-lock <path>
+       docker-dev-trivy-gate scan-path <path> <output>
 
 Adapter contract:
   - generate a temporary, fully resolved lockfile without running package scripts;
@@ -22,9 +26,13 @@ EOF
 }
 
 case "${1:-}" in
-  scan-lock|scan-path)
+  scan-lock)
     [[ $# -eq 2 ]] || { usage >&2; exit 2; }
     scan_target "$2"
+    ;;
+  scan-path)
+    [[ $# -eq 3 ]] || { usage >&2; exit 2; }
+    scan_target "$2" "$3"
     ;;
   --help|-h|help) usage ;;
   *) usage >&2; exit 2 ;;

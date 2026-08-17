@@ -3,6 +3,5 @@
   "name": "gitleaks",
   "kind": "secret-scanner",
   "summary": "Detects hardcoded secrets in the git history and working tree with Gitleaks.",
-  "configPath": "gitleaks.config.json",
-  "output": { "file": "../../reports/gitleaks.json" }
+  "configPath": "gitleaks.config.json"
 }

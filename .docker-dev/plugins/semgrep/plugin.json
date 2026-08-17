@@ -3,6 +3,5 @@
   "name": "semgrep",
   "kind": "sast",
   "summary": "Static analysis of source code with Semgrep.",
-  "configPath": "semgrep.config.json",
-  "output": { "file": "../../reports/semgrep.json" }
+  "configPath": "semgrep.config.json"
 }
