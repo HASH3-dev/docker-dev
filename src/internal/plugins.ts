@@ -1,7 +1,7 @@
 import * as p from "@clack/prompts";
 import { existsSync } from "node:fs";
-import { readdir, readFile, rm } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { embeddedAssets } from "../../.generated/embedded-assets";
 import {
   parseCommandManifest,
@@ -114,6 +114,55 @@ export async function readPluginConfig<T = unknown>(
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Resolves a plugin's declared output file to an absolute host path,
+ * following `output.file` from its `plugin.json`. Returns undefined if the
+ * plugin declares no `output`.
+ */
+export async function pluginOutputPath(
+  dockerDevDirectory: string,
+  pluginRelativeDir: string,
+): Promise<string | undefined> {
+  const pluginDirectory = join(dockerDevDirectory, ...pluginRelativeDir.split("/"));
+  const manifest = parsePluginManifest(
+    JSON.parse(await readFile(join(pluginDirectory, "plugin.json"), "utf8")),
+  );
+
+  return manifest.output
+    ? join(pluginDirectory, manifest.output.file)
+    : undefined;
+}
+
+/** Reads and parses a plugin's declared output file. Returns undefined if it declares no `output` or the file does not exist yet. */
+export async function readPluginOutput<T = unknown>(
+  dockerDevDirectory: string,
+  pluginRelativeDir: string,
+): Promise<T | undefined> {
+  const path = await pluginOutputPath(dockerDevDirectory, pluginRelativeDir);
+  if (!path) return undefined;
+
+  try {
+    return JSON.parse(await readFile(path, "utf8")) as T;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Writes a plugin's declared output file, creating its parent directory as needed. */
+export async function writePluginOutput(
+  dockerDevDirectory: string,
+  pluginRelativeDir: string,
+  content: string,
+): Promise<void> {
+  const path = await pluginOutputPath(dockerDevDirectory, pluginRelativeDir);
+  if (!path) {
+    throw new Error(`Plugin ${pluginRelativeDir} declares no output file.`);
+  }
+
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, content);
 }
 
 function supportsRuntimes(
