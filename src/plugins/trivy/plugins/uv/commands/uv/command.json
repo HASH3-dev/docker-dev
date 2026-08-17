@@ -1,6 +1,6 @@
 {
   "$schema": "../../../../../../schemas/command.schema.json",
-  "name": "uv",
+  "name": "trivy:uv",
   "args": "<project-relative-path> [uv-arguments...]",
   "summary": "Run the protected uv wrapper.",
   "help": "Run uv inside the protected development container.",

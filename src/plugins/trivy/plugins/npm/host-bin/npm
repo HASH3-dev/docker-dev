@@ -21,4 +21,4 @@ esac
 }
 
 cd "$project_root"
-exec "$docker_dev_dir/docker-dev" npm "$relative_path" "$@"
+exec "$docker_dev_dir/docker-dev" trivy:npm "$relative_path" "$@"

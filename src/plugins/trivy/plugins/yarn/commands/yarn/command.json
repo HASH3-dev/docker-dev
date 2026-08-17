@@ -1,6 +1,6 @@
 {
   "$schema": "../../../../../../schemas/command.schema.json",
-  "name": "yarn",
+  "name": "trivy:yarn",
   "args": "<project-relative-path> [yarn-arguments...]",
   "summary": "Run the protected yarn wrapper.",
   "help": "Run yarn inside the protected development container.",

@@ -19,10 +19,11 @@ plugins/<nome>/
 └── hooks/post-asdf.sh        # opcional; roda como docker-dev após asdf install
 ```
 
-Os nomes devem usar somente letras minúsculas, números e hífens. Comandos são
-globais; não crie um nome que já exista em `commands/` ou em outro plugin
-habilitado. Scripts de imagem devem ser idempotentes e não devem depender do
-checkout do projeto, pois são executados antes do bind mount existir.
+Nomes de comandos do núcleo usam somente letras minúsculas, números e hífens.
+Comandos de plugins usam `<plugin>:<comando>` (por exemplo, `trivy:scan`),
+inclusive adaptadores internos que precisam ser chamados por wrappers de host.
+Scripts de imagem devem ser idempotentes e não devem depender do checkout do
+projeto, pois são executados antes do bind mount existir.
 
 Não há hooks de host: um plugin nunca deve alterar configuração, pacotes ou
 credenciais da máquina do desenvolvedor. Mudanças no host continuam concentradas
@@ -46,11 +47,12 @@ editá-lo livremente. Para ler o config a partir de um `command.ts`, use
 `readPluginConfig` de `@internal/plugins`, passando o caminho do plugin
 relativo a `.docker-dev` (ex.: `"plugins/trivy/plugins/npm"`).
 
-Um plugin também pode declarar `output.file` para um arquivo local gerado no
-diretório do plugin. Quando `shared` é omitido ou `false`, o arquivo entra no
-bloco gerenciado de `.docker-dev/.gitignore`; use `shared: true` só para output
-que deve ser versionado. Use `pluginOutputPath`, `readPluginOutput` e
-`writePluginOutput` de `@internal/plugins` para acessar esse arquivo.
+Um `command.json` pode declarar `output.file` para arquivo local gerado pelo
+comando. Caminho é relativo a `.docker-dev`, sem `..` nem `/` inicial. Quando
+`shared` é omitido ou `false`, arquivo entra no bloco gerenciado de
+`.docker-dev/.gitignore`; use `shared: true` só para output versionado. O
+handler recebe manifest do comando como terceiro argumento e resolve o caminho
+a partir de `context.dockerDevDirectory`.
 
 ## Subplugins
 

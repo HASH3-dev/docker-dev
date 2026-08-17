@@ -3,6 +3,5 @@
   "name": "bearer",
   "kind": "sast",
   "summary": "Static analysis for sensitive data risks and OWASP Top 10 issues with Bearer.",
-  "configPath": "bearer.config.json",
-  "output": { "file": "../../reports/bearer.json" }
+  "configPath": "bearer.config.json"
 }

@@ -4,7 +4,7 @@ Static analysis (SAST) focused on sensitive data flows (PII/PHI) and the
 OWASP Top 10, using the free Bearer CLI (no login required).
 
 ```bash
-docker-dev bearer [path]
+docker-dev bearer:scan [path]
 ```
 
 Scans the given path (default: the project root) inside the development

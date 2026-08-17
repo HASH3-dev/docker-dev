@@ -132,7 +132,7 @@ scan_install() {
   (
     cd "$temporary_root"
     run_npm install --package-lock-only --package-lock=true --ignore-scripts "${resolution_args[@]}"
-    scan_lockfile "$temporary_root/package-lock.json"
+    scan_lockfile "$temporary_root/package-lock.json" || exit $?
     [[ -z "$audit_severity" ]] || run_npm audit --audit-level="$audit_severity"
   ) || scan_status=$?
 

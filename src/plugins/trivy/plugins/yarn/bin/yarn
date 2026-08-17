@@ -136,7 +136,7 @@ scan_resolution() {
     cd "$temporary_root"
     run_yarn_without_scripts "$command_name" "${sanitized_args[@]}"
     [[ -f yarn.lock ]] || { echo 'Yarn security gate: resolution did not produce yarn.lock.' >&2; exit 1; }
-    docker-dev-trivy-gate scan-lock "$temporary_root/yarn.lock"
+    docker-dev-trivy-gate scan-lock "$temporary_root/yarn.lock" || exit $?
     run_yarn_audit
   ) || scan_status=$?
 

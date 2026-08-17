@@ -91,7 +91,7 @@ scan_resolution() {
       echo 'Bun security gate: resolution did not produce a Bun lockfile.' >&2
       exit 1
     fi
-    docker-dev-trivy-gate scan-lock "$temporary_root/$lockfile"
+    docker-dev-trivy-gate scan-lock "$temporary_root/$lockfile" || exit $?
     [[ -z "$audit_severity" ]] || run_bun audit --audit-level="$audit_severity"
   ) || scan_status=$?
   rm -rf "$temporary_root"

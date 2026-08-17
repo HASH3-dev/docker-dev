@@ -18,18 +18,6 @@
       "type": "string",
       "pattern": "^(?!/)(?!.*\\.\\.)[A-Za-z0-9._/-]+$"
     },
-    "output": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["file"],
-      "properties": {
-        "file": {
-          "type": "string",
-          "pattern": "^(?!/)(?!.*\\.\\.)[A-Za-z0-9._/-]+$"
-        },
-        "shared": { "type": "boolean" }
-      }
-    },
     "detect": {
       "type": "object",
       "additionalProperties": false,

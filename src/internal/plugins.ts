@@ -1,9 +1,13 @@
 import * as p from "@clack/prompts";
 import { existsSync } from "node:fs";
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { readdir, readFile, rm } from "node:fs/promises";
+import { join } from "node:path";
 import { embeddedAssets } from "../../.generated/embedded-assets";
-import { parsePluginManifest, type PluginManifest } from "../schemas/manifest";
+import {
+  parseCommandManifest,
+  parsePluginManifest,
+  type PluginManifest,
+} from "../schemas/manifest";
 
 const selectionMarker = "# docker-dev managed plugin selection";
 
@@ -110,55 +114,6 @@ export async function readPluginConfig<T = unknown>(
   } catch {
     return undefined;
   }
-}
-
-/**
- * Resolves a plugin's declared output file to an absolute host path,
- * following `output.file` from its `plugin.json`. Returns undefined if the
- * plugin declares no `output`.
- */
-export async function pluginOutputPath(
-  dockerDevDirectory: string,
-  pluginRelativeDir: string,
-): Promise<string | undefined> {
-  const pluginDirectory = join(dockerDevDirectory, ...pluginRelativeDir.split("/"));
-  const manifest = parsePluginManifest(
-    JSON.parse(await readFile(join(pluginDirectory, "plugin.json"), "utf8")),
-  );
-
-  return manifest.output
-    ? join(pluginDirectory, manifest.output.file)
-    : undefined;
-}
-
-/** Reads and parses a plugin's declared output file. Returns undefined if it declares no `output` or the file does not exist yet. */
-export async function readPluginOutput<T = unknown>(
-  dockerDevDirectory: string,
-  pluginRelativeDir: string,
-): Promise<T | undefined> {
-  const path = await pluginOutputPath(dockerDevDirectory, pluginRelativeDir);
-  if (!path) return undefined;
-
-  try {
-    return JSON.parse(await readFile(path, "utf8")) as T;
-  } catch {
-    return undefined;
-  }
-}
-
-/** Writes a plugin's declared output file, creating its parent directory as needed. */
-export async function writePluginOutput(
-  dockerDevDirectory: string,
-  pluginRelativeDir: string,
-  content: string,
-): Promise<void> {
-  const path = await pluginOutputPath(dockerDevDirectory, pluginRelativeDir);
-  if (!path) {
-    throw new Error(`Plugin ${pluginRelativeDir} declares no output file.`);
-  }
-
-  await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, content);
 }
 
 function supportsRuntimes(
@@ -368,10 +323,30 @@ export async function collectSelectedPluginManifests(
   );
 }
 
+async function commandOutputPaths(pluginDirectory: string): Promise<string[]> {
+  const commandsDirectory = join(pluginDirectory, "commands");
+  if (!existsSync(commandsDirectory)) return [];
+
+  const commands = await readdir(commandsDirectory, { withFileTypes: true });
+  return Promise.all(
+    commands
+      .filter((entry) => entry.isDirectory())
+      .map(async (entry) => {
+        const manifest = parseCommandManifest(
+          JSON.parse(
+            await readFile(join(commandsDirectory, entry.name, "command.json"), "utf8"),
+          ),
+        );
+        return manifest.output && manifest.output.shared !== true
+          ? [manifest.output.file]
+          : [];
+      }),
+  ).then((paths) => paths.flat());
+}
+
 async function selectedPluginOutputPaths(
   directory: string,
   enabledFile: string,
-  pluginsRelativePrefix: string,
 ): Promise<string[]> {
   const enabled = new Set((await readSelection(enabledFile)).ids);
   const available = await manifests(directory);
@@ -379,22 +354,15 @@ async function selectedPluginOutputPaths(
   const nested = await Promise.all(
     selected.map(async (plugin) => {
       const pluginDirectory = join(directory, plugin.name);
-      const pluginRelativePrefix = `${pluginsRelativePrefix}/${plugin.name}`;
-      const own =
-        plugin.output && plugin.output.shared !== true
-          ? [`${pluginRelativePrefix}/${plugin.output.file}`]
-          : [];
+      const own = await commandOutputPaths(pluginDirectory);
 
-      if (!existsSync(join(pluginDirectory, "plugins"))) {
-        return own;
-      }
+      if (!existsSync(join(pluginDirectory, "plugins"))) return own;
 
       return [
         ...own,
         ...(await selectedPluginOutputPaths(
           join(pluginDirectory, "plugins"),
           join(pluginDirectory, "plugins", "plugins.enabled"),
-          `${pluginRelativePrefix}/plugins`,
         )),
       ];
     }),
@@ -415,6 +383,5 @@ export async function collectSelectedPluginOutputPaths(
   return selectedPluginOutputPaths(
     pluginsDirectory,
     join(pluginsDirectory, "plugins.enabled"),
-    "plugins",
   );
 }

@@ -11,6 +11,6 @@ export async function runManifest(
     const args = (step.call.args ?? []).flatMap((value) =>
       value === "$@" ? context.commandArguments : [value],
     );
-    await registry.get(step.call.function)(context, args);
+    await registry.get(step.call.function)(context, args, manifest);
   }
 }

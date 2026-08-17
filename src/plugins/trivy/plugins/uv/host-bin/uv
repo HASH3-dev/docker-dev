@@ -18,4 +18,4 @@ esac
 }
 
 cd "$project_root"
-exec "$docker_dev_dir/docker-dev" uv "$relative_path" "$@"
+exec "$docker_dev_dir/docker-dev" trivy:uv "$relative_path" "$@"

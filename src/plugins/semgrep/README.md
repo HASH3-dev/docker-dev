@@ -4,7 +4,7 @@ Static analysis (SAST) for source code, using the free Semgrep Community
 Edition rules (no login required).
 
 ```bash
-docker-dev semgrep [path]
+docker-dev semgrep:scan [path]
 ```
 
 Scans the given path (default: the project root) inside the development

@@ -1,6 +1,6 @@
 {
   "$schema": "../../../../../../schemas/command.schema.json",
-  "name": "npm",
+  "name": "trivy:npm",
   "args": "<project-relative-path> [npm-arguments...]",
   "summary": "Run the protected npm wrapper.",
   "help": "Run npm inside the protected development container.",

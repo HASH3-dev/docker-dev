@@ -1,16 +1,15 @@
 import { mkdir } from "node:fs/promises";
-import { dirname, relative } from "node:path";
-import { pluginOutputPath, readPluginConfig } from "@internal/plugins";
+import { dirname, join, relative } from "node:path";
+import { readPluginConfig } from "@internal/plugins";
 import type { ActionRegistry } from "@internal/registry";
 import { execInDev, start } from "@lib/compose";
-import { ensureDockerignoreEntry } from "@lib/host";
 
 interface GitleaksConfig {
   mode: "git" | "dir";
 }
 
 export function register(registry: ActionRegistry): void {
-  registry.register("scanGitleaksPath", async (context, args) => {
+  registry.register("scanGitleaksPath", async (context, args, manifest) => {
     if (args.length > 1) {
       throw new Error("gitleaks accepts at most one path.");
     }
@@ -19,16 +18,14 @@ export function register(registry: ActionRegistry): void {
       context.dockerDevDirectory,
       "plugins/gitleaks",
     );
-    const outputPath = await pluginOutputPath(
-      context.dockerDevDirectory,
-      "plugins/gitleaks",
-    );
+    const outputPath = manifest?.output
+      ? join(context.dockerDevDirectory, manifest.output.file)
+      : undefined;
 
     if (!config || !outputPath) {
       throw new Error("The gitleaks plugin is not selected in this project.");
     }
 
-    await ensureDockerignoreEntry(context.dockerDevDirectory, "reports/gitleaks.json");
     await mkdir(dirname(outputPath), { recursive: true });
     const containerOutputPath = `/workspace/${relative(context.projectRoot, outputPath)}`;
 

@@ -13,6 +13,7 @@ export interface CommandManifest {
   }>;
   summary: string;
   help: string;
+  output?: { file: string; shared?: boolean };
   steps: Array<{ call: { function: string; args?: string[] } }>;
 }
 
@@ -23,7 +24,6 @@ export interface PluginManifest {
   summary: string;
   requiresRuntimes?: string[];
   configPath?: string;
-  output?: { file: string; shared?: boolean };
   detect?: { files: string[] };
   container?: {
     environment?: Record<string, string>;

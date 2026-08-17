@@ -4,7 +4,7 @@ Dedicated secret detection across the git history (default) or the working
 tree, using the free Gitleaks CLI.
 
 ```bash
-docker-dev gitleaks [path]
+docker-dev gitleaks:scan [path]
 ```
 
 Scans the given path (default: the project root) inside the development

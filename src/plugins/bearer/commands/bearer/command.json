@@ -1,9 +1,10 @@
 {
   "$schema": "../../../../schemas/command.schema.json",
-  "name": "bearer",
+  "name": "bearer:scan",
   "args": "[path]",
   "summary": "Scan a project path for sensitive data risks with Bearer.",
   "help": "Scans the selected project path inside the development container. The default path is the project root. Writes a JSON report to .docker-dev/reports/bearer.json and exits with a non-zero status when Bearer finds issues at the configured severity.",
+  "output": { "file": "reports/bearer.json" },
   "steps": [
     {
       "call": {

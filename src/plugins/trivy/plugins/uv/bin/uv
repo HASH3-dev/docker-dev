@@ -62,7 +62,7 @@ scan_project_resolution() {
     cd "$temporary_root"
     run_uv "$resolution_command" "${sanitized_args[@]}"
     [[ -f uv.lock ]] || { echo 'uv security gate: resolution did not produce uv.lock.' >&2; exit 1; }
-    docker-dev-trivy-gate scan-lock "$temporary_root/uv.lock"
+    docker-dev-trivy-gate scan-lock "$temporary_root/uv.lock" || exit $?
   ) || scan_status=$?
 
   rm -rf "$temporary_root"
@@ -90,7 +90,7 @@ EOF
     cd "$temporary_root"
     run_uv add --no-sync "$@"
     [[ -f uv.lock ]] || { echo 'uv security gate: resolution did not produce uv.lock.' >&2; exit 1; }
-    docker-dev-trivy-gate scan-lock "$temporary_root/uv.lock"
+    docker-dev-trivy-gate scan-lock "$temporary_root/uv.lock" || exit $?
   ) || scan_status=$?
   rm -rf "$temporary_root"
   return "$scan_status"

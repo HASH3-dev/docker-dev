@@ -1,8 +1,10 @@
+import type { CommandManifest } from "../schemas/manifest";
 import type { CommandContext } from "@lib/context";
 
 export type ActionHandler = (
   context: CommandContext,
   args: readonly string[],
+  manifest?: CommandManifest,
 ) => Promise<void>;
 
 export class ActionRegistry {

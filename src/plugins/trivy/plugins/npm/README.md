@@ -5,12 +5,8 @@ sincronização de dependências. O wrapper resolve uma instalação em diretór
 temporário e chama `docker-dev-trivy-gate scan-lock` antes da instalação real.
 Assim, o adaptador não depende da implementação nem das opções do Trivy.
 
-Também fornece:
-
-```bash
-./.docker-dev/dev.sh npm . install pacote
-./.docker-dev/dev.sh install
-```
+Com direnv carregado, use `npm install pacote` normalmente; o wrapper de host
+encaminha para `docker-dev trivy:npm` e aplica o scan antes da instalação real.
 
 ## Config
 

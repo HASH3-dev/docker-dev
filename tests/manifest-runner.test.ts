@@ -2,7 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { parseCommandManifest } from "../src/schemas/manifest";
+import {
+  parseCommandManifest,
+  parsePluginManifest,
+} from "../src/schemas/manifest";
 import {
   generatePluginOverride,
   portsOverride,
@@ -14,6 +17,7 @@ import { runManifest } from "@internal/command-runner";
 import { ActionRegistry } from "@internal/registry";
 import { registerInternalActions } from "@internal/actions";
 import { materializeAssets } from "@internal/assets";
+import { collectSelectedPluginOutputPaths } from "@internal/plugins";
 import {
   planPorts,
   planToolVersions,
@@ -21,21 +25,21 @@ import {
 } from "../src/commands/setup/plan";
 import { shouldStartFreshShell } from "../src/commands/setup/command";
 import packageManifest from "../package.json";
-import { ensureDockerignoreEntry } from "@lib/host";
+import { ensureProjectExecutable } from "@lib/host";
 
-describe("dockerignore", () => {
-  test("creates entries without duplicates", async () => {
-    const directory = "/tmp/docker-dev-dockerignore";
-    const dockerignore = join(directory, ".dockerignore");
+describe("plugin report ignores", () => {
+  test("writes normalized report paths to the managed gitignore block", async () => {
+    const directory = "/tmp/docker-dev-plugin-report-ignores";
     await rm(directory, { recursive: true, force: true });
 
-    await ensureDockerignoreEntry(directory, "reports/semgrep.json");
-    await writeFile(dockerignore, `${await readFile(dockerignore, "utf8")}node_modules`);
-    await ensureDockerignoreEntry(directory, "reports/semgrep.json");
-    await ensureDockerignoreEntry(directory, "reports/bearer.json");
+    await ensureProjectExecutable(directory, [
+      "reports/semgrep.json",
+      "reports/bearer.json",
+      "reports/gitleaks.json",
+    ]);
 
-    expect(await readFile(dockerignore, "utf8")).toBe(
-      "reports/semgrep.json\nnode_modules\nreports/bearer.json\n",
+    expect(await readFile(join(directory, ".gitignore"), "utf8")).toBe(
+      "# >>> docker-dev managed local files >>>\ndocker-dev\n.docker-dev-state.json\nreports/semgrep.json\nreports/bearer.json\nreports/gitleaks.json\n# <<< docker-dev managed local files <<<\n",
     );
     await rm(directory, { recursive: true, force: true });
   });
@@ -45,6 +49,63 @@ describe("setup fresh shell", () => {
   test("starts one fresh shell but does not nest one created by setup", () => {
     expect(shouldStartFreshShell({})).toBe(true);
     expect(shouldStartFreshShell({ DOCKER_DEV_FRESH_SHELL: "1" })).toBe(false);
+  });
+});
+
+describe("command manifests", () => {
+  test("accepts qualified plugin command names and output", () => {
+    expect(() =>
+      parseCommandManifest({
+        name: "trivy:scan",
+        summary: "Scan dependencies.",
+        help: "Scan dependencies.",
+        output: { file: "reports/trivy.json" },
+        steps: [{ call: { function: "record" } }],
+      }),
+    ).not.toThrow();
+  });
+
+  test("rejects command output path traversal", () => {
+    expect(() =>
+      parseCommandManifest({
+        name: "example",
+        summary: "Example command.",
+        help: "Example command.",
+        output: { file: "../report.json" },
+        steps: [{ call: { function: "record" } }],
+      }),
+    ).toThrow("Invalid command manifest.");
+  });
+
+  test("rejects legacy plugin output", () => {
+    expect(() =>
+      parsePluginManifest({
+        name: "example",
+        kind: "example",
+        summary: "Example plugin.",
+        output: { file: "reports/example.json" },
+      }),
+    ).toThrow("Invalid plugin manifest.");
+  });
+
+  test("Trivy host wrappers dispatch qualified adapter commands", async () => {
+    for (const manager of ["bun", "npm", "pnpm", "yarn", "uv"]) {
+      const wrapper = await readFile(
+        join(
+          import.meta.dir,
+          "..",
+          "src",
+          "plugins",
+          "trivy",
+          "plugins",
+          manager,
+          "host-bin",
+          manager,
+        ),
+        "utf8",
+      );
+      expect(wrapper).toContain(`docker-dev\" trivy:${manager} `);
+    }
   });
 });
 
@@ -192,6 +253,37 @@ describe("ports", () => {
 });
 
 describe("materializeAssets", () => {
+  test("writes the Docker report exclusions", async () => {
+    const directory = "/tmp/docker-dev-dockerignore";
+    await rm(directory, { recursive: true, force: true });
+
+    await materializeAssets(directory);
+
+    expect(await readFile(join(directory, ".dockerignore"), "utf8")).toBe(
+      "reports/semgrep.json\nreports/bearer.json\nreports/gitleaks.json\nreports/dashboard.html\n",
+    );
+    await rm(directory, { recursive: true, force: true });
+  });
+
+  test("collects normalized selected report paths", async () => {
+    const directory = "/tmp/docker-dev-plugin-output-paths";
+    await rm(directory, { recursive: true, force: true });
+    await materializeAssets(directory);
+    await writeFile(
+      join(directory, "plugins", "plugins.enabled"),
+      "trivy\nsemgrep\nbearer\ngitleaks\nreports\n",
+    );
+
+    expect(await collectSelectedPluginOutputPaths(directory)).toEqual([
+      "reports/semgrep.json",
+      "reports/bearer.json",
+      "reports/gitleaks.json",
+      "reports/trivy.json",
+      "reports/dashboard.html",
+    ]);
+    await rm(directory, { recursive: true, force: true });
+  });
+
   test("preserves project configuration during an asset refresh", async () => {
     const directory = "/tmp/docker-dev-plugin-selection";
     await rm(directory, { recursive: true, force: true });

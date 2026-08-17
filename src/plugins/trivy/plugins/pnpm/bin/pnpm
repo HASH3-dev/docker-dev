@@ -91,7 +91,7 @@ scan_resolution() {
     cd "$temporary_root"
     run_pnpm "$command_name" --lockfile-only --ignore-scripts "${sanitized_args[@]}"
     [[ -f pnpm-lock.yaml ]] || { echo 'pnpm security gate: resolution did not produce pnpm-lock.yaml.' >&2; exit 1; }
-    docker-dev-trivy-gate scan-lock "$temporary_root/pnpm-lock.yaml"
+    docker-dev-trivy-gate scan-lock "$temporary_root/pnpm-lock.yaml" || exit $?
     [[ -z "$audit_severity" ]] || run_pnpm audit --audit-level="$audit_severity"
   ) || scan_status=$?
   rm -rf "$temporary_root"

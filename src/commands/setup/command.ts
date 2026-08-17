@@ -100,7 +100,6 @@ export function register(registry: ActionRegistry): void {
       context.dockerDevDirectory,
       context.projectRoot,
       toolVersionsPlan.runtimes,
-      force,
     );
 
     // Application phase: everything above is already decided, so this is the
