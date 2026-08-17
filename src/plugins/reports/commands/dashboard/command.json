@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../../schemas/command.schema.json",
+  "name": "reports:dashboard",
+  "summary": "Build a dashboard from available JSON reports.",
+  "help": "Reads .docker-dev/reports/*.json and writes a self-contained dark-mode dashboard to .docker-dev/reports/dashboard.html.",
+  "output": { "file": "reports/dashboard.html" },
+  "steps": [
+    {
+      "call": {
+        "function": "buildReportsDashboard"
+      }
+    }
+  ]
+}

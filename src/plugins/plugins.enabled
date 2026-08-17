@@ -3,3 +3,4 @@ trivy
 semgrep
 bearer
 gitleaks
+reports

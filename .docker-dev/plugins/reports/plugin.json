@@ -1,0 +1,6 @@
+{
+  "$schema": "../../schemas/plugin.schema.json",
+  "name": "reports",
+  "kind": "reporting",
+  "summary": "Builds a unified dashboard from security reports."
+}

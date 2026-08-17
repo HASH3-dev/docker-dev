@@ -4,4 +4,6 @@ docker-dev
 reports/semgrep.json
 reports/bearer.json
 reports/gitleaks.json
+reports/trivy.json
+reports/dashboard.html
 # <<< docker-dev managed local files <<<
