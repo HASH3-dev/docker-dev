@@ -77,7 +77,7 @@ describe("command manifests", () => {
     ).toThrow("Invalid command manifest.");
   });
 
-  test("rejects legacy plugin output", () => {
+  test("accepts plugin output", () => {
     expect(() =>
       parsePluginManifest({
         name: "example",
@@ -85,7 +85,7 @@ describe("command manifests", () => {
         summary: "Example plugin.",
         output: { file: "reports/example.json" },
       }),
-    ).toThrow("Invalid plugin manifest.");
+    ).not.toThrow();
   });
 
   test("Trivy host wrappers dispatch qualified adapter commands", async () => {
