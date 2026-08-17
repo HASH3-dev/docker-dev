@@ -25,7 +25,7 @@ for (const manifest of manifests) {
     .command([manifest.name, manifest.args].filter(Boolean).join(" "))
     .summary(manifest.summary)
     .description(manifest.help)
-    .allowUnknownOption(true);
+    .allowUnknownOption(manifest.args?.includes("...") ?? false);
 
   for (const option of manifest.options ?? []) {
     command.option(option.flags, option.description, option.defaultValue);
