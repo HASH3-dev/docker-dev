@@ -7,14 +7,6 @@
 
 * write release changelog content ([31671ae](https://github.com/HASH3-dev/docker-dev/commit/31671aeb0ed7e8adff49961009cc96e2c577deb8))
 
-## [0.8.1](https://github.com/HASH3-dev/docker-dev/compare/v0.8.0...v0.8.1) (2026-08-18)
-
-## [0.8.0](https://github.com/HASH3-dev/docker-dev/compare/v0.7.0...v0.8.0) (2026-08-18)
-
-## [0.7.0](https://github.com/HASH3-dev/docker-dev/compare/v0.6.0...v0.7.0) (2026-08-18)
-
-# Changelog
-
 ## [0.7.0](https://github.com/HASH3-dev/docker-dev/compare/v0.6.0...v0.7.0) (2026-08-17)
 
 
