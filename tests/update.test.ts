@@ -99,7 +99,12 @@ describe("update command", () => {
     const originalLog = console.log;
     const output: string[] = [];
     globalThis.fetch = (async () =>
-      new Response(JSON.stringify([{ tag_name: "v0.6.0" }, { tag_name: "v0.5.0" }]))
+      new Response(
+        JSON.stringify([
+          { tag_name: `v${packageManifest.version}` },
+          { tag_name: "v0.5.0" },
+        ]),
+      )
     ) as unknown as typeof fetch;
     console.log = (value: string) => output.push(value);
 
@@ -107,7 +112,7 @@ describe("update command", () => {
       const registry = new ActionRegistry();
       register(registry);
       await registry.get("update")(createContext([], { list: true }), []);
-      expect(output).toEqual(["v0.6.0 (running)\nv0.5.0"]);
+      expect(output).toEqual([`v${packageManifest.version} (running)\nv0.5.0`]);
     } finally {
       globalThis.fetch = originalFetch;
       console.log = originalLog;
