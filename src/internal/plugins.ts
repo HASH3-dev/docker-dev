@@ -429,8 +429,10 @@ export async function collectSelectedPluginOutputPaths(
   dockerDevDirectory: string,
 ): Promise<string[]> {
   const pluginsDirectory = join(dockerDevDirectory, "plugins");
-  return selectedPluginOutputPaths(
-    pluginsDirectory,
-    join(pluginsDirectory, "plugins.enabled"),
-  );
+  return (
+    await selectedPluginOutputPaths(
+      pluginsDirectory,
+      join(pluginsDirectory, "plugins.enabled"),
+    )
+  ).sort();
 }
