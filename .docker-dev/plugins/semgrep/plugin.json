@@ -3,5 +3,10 @@
   "name": "semgrep",
   "kind": "sast",
   "summary": "Static analysis of source code with Semgrep.",
-  "configPath": "semgrep.config.json"
+  "configPath": "semgrep.config.json",
+  "container": {
+    "environment": {
+      "SEMGREP_SETTINGS_FILE": "/home/dev/.semgrep/settings.yml"
+    }
+  }
 }

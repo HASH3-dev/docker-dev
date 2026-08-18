@@ -1,6 +1,7 @@
 services:
   dev:
     environment:
+      SEMGREP_SETTINGS_FILE: "/home/dev/.semgrep/settings.yml"
       DOCKER_DEV_WRITABLE_DIRECTORIES: "/workspace/node_modules"
     volumes:
       - node_modules:/workspace/node_modules

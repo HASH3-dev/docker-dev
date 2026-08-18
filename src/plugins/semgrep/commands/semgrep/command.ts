@@ -43,7 +43,7 @@ export function register(registry: ActionRegistry): void {
       "--json",
       "--output",
       containerOutputPath,
-      "--error",
+      ...(context.commandOptions.fail === false ? [] : ["--error"]),
       ".",
       ...args,
     ]);

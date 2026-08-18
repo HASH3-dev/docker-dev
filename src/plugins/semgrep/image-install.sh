@@ -11,4 +11,6 @@ apt-get install -y --no-install-recommends pipx
 rm -rf /var/lib/apt/lists/*
 
 PIPX_HOME="$pipx_home" PIPX_BIN_DIR=/usr/local/bin pipx install "semgrep==${semgrep_version}"
+mkdir -p /home/dev/.semgrep
+chown -R 1000:1000 /home/dev/.semgrep
 semgrep --version
