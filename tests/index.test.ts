@@ -31,9 +31,10 @@ describe("command options", () => {
   });
 
   test("allows unknown options for forwarded commands", async () => {
-    const result = await run("bearer:scan", "--force");
+    const result = await run("bearer:scan", "--force", "--help");
 
     expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Usage: docker-dev bearer:scan");
     expect(result.stderr).not.toContain("unknown option '--force'");
   });
 });
