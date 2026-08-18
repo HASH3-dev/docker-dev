@@ -1,0 +1,43 @@
+{
+  "branches": ["main"],
+  "tagFormat": "v${version}",
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits",
+        "releaseRules": [
+          { "type": "feat", "release": "minor" },
+          { "type": "fix", "release": "patch" },
+          { "type": "perf", "release": "patch" }
+        ]
+      }
+    ],
+    [
+      "@semantic-release/release-notes-generator",
+      { "preset": "conventionalcommits" }
+    ],
+    ["@semantic-release/npm", { "npmPublish": false }],
+    "@semantic-release/changelog",
+    ["@semantic-release/exec", { "prepareCmd": "bun run build:all" }],
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["package.json", "CHANGELOG.md"],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          "dist/docker-dev-linux-x64",
+          "dist/docker-dev-linux-arm64",
+          "dist/docker-dev-darwin-x64",
+          "dist/docker-dev-darwin-arm64",
+          "dist/docker-dev-windows-x64.exe"
+        ]
+      }
+    ]
+  ]
+}
