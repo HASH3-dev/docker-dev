@@ -275,11 +275,11 @@ describe("materializeAssets", () => {
     );
 
     expect(await collectSelectedPluginOutputPaths(directory)).toEqual([
-      "reports/semgrep.json",
       "reports/bearer.json",
-      "reports/gitleaks.json",
-      "reports/trivy.json",
       "reports/dashboard.html",
+      "reports/gitleaks.json",
+      "reports/semgrep.json",
+      "reports/trivy.json",
     ]);
     await rm(directory, { recursive: true, force: true });
   });
