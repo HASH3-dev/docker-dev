@@ -1,4 +1,4 @@
-name: release-please
+name: release
 
 on:
   push:
@@ -6,31 +6,26 @@ on:
       - main
 
 concurrency:
-  group: release-please
+  group: release
   cancel-in-progress: false
 
 permissions:
   contents: write
+  issues: write
   pull-requests: write
 
 jobs:
-  release-please:
-    if: "!startsWith(github.event.head_commit.message, 'chore(main): release docker-dev ')"
+  release:
     runs-on: ubuntu-latest
     steps:
-      - uses: googleapis/release-please-action@v4
+      - uses: actions/checkout@v4
         with:
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
+          fetch-depth: 0
 
-  publish-release:
-    if: "startsWith(github.event.head_commit.message, 'chore(main): release docker-dev ')"
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out release commit
-        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
         with:
-          ref: ${{ github.sha }}
+          node-version: 22.14.0
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -43,42 +38,7 @@ jobs:
       - name: Validate source
         run: bun run check && bun test
 
-      - name: Build distribution binaries
-        run: bun run build:all
-
-      - name: Create release tag
-        id: tag
-        run: |
-          version="$(bun -e 'console.log((await Bun.file("package.json").json()).version)')"
-          tag="v$version"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$tag" -m "Release $tag"
-          git push origin "$tag"
-          echo "name=$tag" >> "$GITHUB_OUTPUT"
-
-      - name: Create draft release
+      - name: Release
         env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.tag.outputs.name }}
-        run: |
-          awk '/^## /{if (n++) exit} n' CHANGELOG.md > RELEASE_NOTES.md
-          gh release create "$TAG" --draft --title "$TAG" --notes-file RELEASE_NOTES.md
-
-      - name: Upload release binaries
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.tag.outputs.name }}
-        run: >-
-          gh release upload "$TAG"
-          dist/docker-dev-linux-x64
-          dist/docker-dev-linux-arm64
-          dist/docker-dev-darwin-x64
-          dist/docker-dev-darwin-arm64
-          dist/docker-dev-windows-x64.exe
-
-      - name: Publish release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.tag.outputs.name }}
-        run: gh release edit "$TAG" --draft=false
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bun run release

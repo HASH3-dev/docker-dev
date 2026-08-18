@@ -28,17 +28,15 @@ Para verificar os artefatos de distribuição:
 bun run build:all
 ```
 
-O versionamento é automático via [release-please](https://github.com/googleapis/release-please).
-Integre PRs por **rebase merge**: cada commit chega intacto à `main` e vira uma
-entrada no changelog. Todos os commits devem seguir Conventional Commits; o CI
-aceita `feat`, `fix`, `refactor`, `perf`, `build`, `ci`, `chore`, `docs` e `test`.
-`feat:` abre release minor e `fix:` abre release patch. Os demais tipos aparecem
-nas seções configuradas, mas não abrem release sozinhos.
+O versionamento é automático via [semantic-release](https://semantic-release.gitbook.io/semantic-release/).
+Todo commit mergeado na `main` é analisado como Conventional Commit; o CI aceita
+`feat`, `fix`, `refactor`, `perf`, `build`, `ci`, `chore`, `docs` e `test`.
+`feat:` abre release minor, `fix:` e `perf:` abrem release patch, e uma alteração
+breaking abre release major. Os demais tipos não abrem release sozinhos.
 
-Os commits mergeados alimentam um PR `chore(main): release X.Y.Z`, que mantém
-`package.json`, `CHANGELOG.md` e a tag em dia. Basta revisar e mergear esse PR
-— a tag dispara o build e a publicação da release no GitHub. Não atualize a
-versão manualmente.
+A release é publicada direto após o merge: semantic-release atualiza
+`package.json` e `CHANGELOG.md`, cria a tag `vX.Y.Z`, compila os binários e
+publica a release no GitHub. Não atualize a versão manualmente.
 
 Os binários são escritos em `dist/`; dependências, o diretório `dist/` e os
 assets incorporados em `.generated/` não devem ser versionados.
