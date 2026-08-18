@@ -1,5 +1,13 @@
 # Changelog
 
+# [0.9.0](https://github.com/HASH3-dev/docker-dev/compare/v0.8.2...v0.9.0) (2026-08-18)
+
+
+### Features
+
+* add non-failing scanner reports ([0511e7c](https://github.com/HASH3-dev/docker-dev/commit/0511e7cbc0b5c1822323f54dea6e1caa4299bb37))
+* run commands inside development container ([6d235b8](https://github.com/HASH3-dev/docker-dev/commit/6d235b8cef89b3fb0b133bcc7050a8897d76c118))
+
 ## [0.8.2](https://github.com/HASH3-dev/docker-dev/compare/v0.8.1...v0.8.2) (2026-08-18)
 
 
