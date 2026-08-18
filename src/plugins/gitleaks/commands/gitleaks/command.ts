@@ -10,10 +10,6 @@ interface GitleaksConfig {
 
 export function register(registry: ActionRegistry): void {
   registry.register("scanGitleaksPath", async (context, args, manifest) => {
-    if (args.length > 1) {
-      throw new Error("gitleaks accepts at most one path.");
-    }
-
     const config = await readPluginConfig<GitleaksConfig>(
       context.dockerDevDirectory,
       "plugins/gitleaks",
@@ -41,7 +37,8 @@ export function register(registry: ActionRegistry): void {
       "json",
       "--report-path",
       containerOutputPath,
-      args[0] ?? ".",
+      ".",
+      ...args,
     ]);
   });
 }

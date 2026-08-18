@@ -21,11 +21,14 @@ const program = new Command()
   .showSuggestionAfterError();
 
 for (const manifest of manifests) {
+  const forwardsArguments = manifest.steps.some((step) =>
+    step.call.args?.includes("$@"),
+  );
   const command = program
     .command([manifest.name, manifest.args].filter(Boolean).join(" "))
     .summary(manifest.summary)
     .description(manifest.help)
-    .allowUnknownOption(manifest.args?.includes("...") ?? false);
+    .allowUnknownOption(forwardsArguments);
 
   for (const option of manifest.options ?? []) {
     command.option(option.flags, option.description, option.defaultValue);

@@ -8,10 +8,6 @@ export default manifest;
 
 export function register(registry: ActionRegistry): void {
   registry.register("scanTrivyPath", async (context, args, command) => {
-    if (args.length > 1) {
-      throw new Error("scan accepts at most one path.");
-    }
-
     const outputPath = command?.output
       ? join(context.dockerDevDirectory, command.output.file)
       : undefined;
@@ -30,7 +26,8 @@ export function register(registry: ActionRegistry): void {
       "dev",
       "docker-dev-trivy-gate",
       "scan-path",
-      args[0] ?? ".",
+      ".",
+      ...args,
       containerOutputPath,
     ]);
   });

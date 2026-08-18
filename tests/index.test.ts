@@ -29,4 +29,11 @@ describe("command options", () => {
     expect(result.stderr).toContain("Provide --env-file <path>.");
     expect(result.stderr).not.toContain("unknown option '--typo'");
   });
+
+  test("allows unknown options for forwarded commands", async () => {
+    const result = await run("bearer:scan", "--force");
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).not.toContain("unknown option '--force'");
+  });
 });

@@ -10,10 +10,6 @@ interface BearerConfig {
 
 export function register(registry: ActionRegistry): void {
   registry.register("scanBearerPath", async (context, args, manifest) => {
-    if (args.length > 1) {
-      throw new Error("bearer accepts at most one path.");
-    }
-
     const config = await readPluginConfig<BearerConfig>(
       context.dockerDevDirectory,
       "plugins/bearer",
@@ -43,7 +39,8 @@ export function register(registry: ActionRegistry): void {
       containerOutputPath,
       "--fail-on-severity",
       config.failOnSeverity.join(","),
-      args[0] ?? ".",
+      ".",
+      ...args,
     ]);
   });
 }
