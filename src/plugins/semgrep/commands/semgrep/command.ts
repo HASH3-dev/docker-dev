@@ -12,10 +12,6 @@ interface SemgrepConfig {
 
 export function register(registry: ActionRegistry): void {
   registry.register("scanSemgrepPath", async (context, args, manifest) => {
-    if (args.length > 1) {
-      throw new Error("semgrep accepts at most one path.");
-    }
-
     const config = await readPluginConfig<SemgrepConfig>(
       context.dockerDevDirectory,
       "plugins/semgrep",
@@ -48,7 +44,8 @@ export function register(registry: ActionRegistry): void {
       "--output",
       containerOutputPath,
       "--error",
-      args[0] ?? ".",
+      ".",
+      ...args,
     ]);
   });
 }
