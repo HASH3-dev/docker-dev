@@ -1,6 +1,7 @@
 dist/
 node_modules/
 .generated/
+docker-dev
 # >>> docker-dev managed .envrc >>>
 .envrc
 # <<< docker-dev managed .envrc <<<

@@ -21,7 +21,8 @@
     "build:darwin-arm64": "bun run generate && bun build ./src/index.ts --compile --target=bun-darwin-arm64 --minify --sourcemap --outfile ./dist/docker-dev-darwin-arm64",
     "build:windows-x64": "bun run generate && bun build ./src/index.ts --compile --target=bun-windows-x64-baseline --minify --sourcemap --outfile ./dist/docker-dev-windows-x64.exe",
     "build:all": "bun run build:linux-x64 && bun run build:linux-arm64 && bun run build:darwin-x64 && bun run build:darwin-arm64 && bun run build:windows-x64",
-    "release": "semantic-release"
+    "release": "semantic-release",
+    "reports": "./docker-dev trivy:scan --no-fail && ./docker-dev semgrep:scan --no-fail && ./docker-dev bearer:scan --no-fail && ./docker-dev gitleaks:scan --no-fail && ./docker-dev reports:dashboard && echo `$(pwd)/.docker-dev/reports/dashboard.html`"
   },
   "dependencies": {
     "@clack/prompts": "1.7.0",
