@@ -29,6 +29,7 @@ export function register(registry: ActionRegistry): void {
       ".",
       ...args,
       containerOutputPath,
+      context.commandOptions.fail === false ? "--exit-code=0" : "--exit-code=1",
     ]);
   });
 }

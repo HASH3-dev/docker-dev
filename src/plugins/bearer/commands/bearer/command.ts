@@ -39,6 +39,7 @@ export function register(registry: ActionRegistry): void {
       containerOutputPath,
       "--fail-on-severity",
       config.failOnSeverity.join(","),
+      ...(context.commandOptions.fail === false ? ["--exit-code=0"] : []),
       ".",
       ...args,
     ]);

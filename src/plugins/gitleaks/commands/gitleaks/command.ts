@@ -37,6 +37,7 @@ export function register(registry: ActionRegistry): void {
       "json",
       "--report-path",
       containerOutputPath,
+      ...(context.commandOptions.fail === false ? ["--exit-code=0"] : []),
       ".",
       ...args,
     ]);
