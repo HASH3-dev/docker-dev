@@ -266,6 +266,7 @@ export async function compose(
 }
 
 export async function start(context: CommandContext): Promise<void> {
+  if (process.env.DOCKER_DEV_IN_CONTAINER === "1") return;
   await compose(context, ["up", "--detach", "--build"]);
 }
 
@@ -273,6 +274,14 @@ export async function execInDev(
   context: CommandContext,
   args: readonly string[],
 ): Promise<void> {
+  if (process.env.DOCKER_DEV_IN_CONTAINER === "1") {
+    const command = [...args];
+    const cwd = command[0] === "--workdir" ? command.splice(0, 2)[1] : context.projectRoot;
+    command.shift(); // Compose service name.
+    await run(context, command, { cwd });
+    return;
+  }
+
   await compose(context, [
     "exec",
     "--user",
