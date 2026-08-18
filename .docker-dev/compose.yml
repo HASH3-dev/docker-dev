@@ -17,6 +17,7 @@ services:
     environment:
       HOME: /home/dev
       ASDF_DATA_DIR: /asdf
+      DOCKER_DEV_IN_CONTAINER: "1"
       LOCAL_UID: ${LOCAL_UID:-1000}
       LOCAL_GID: ${LOCAL_GID:-1000}
       TRIVY_SEVERITY: ${TRIVY_SEVERITY:-HIGH,CRITICAL}
