@@ -9,6 +9,15 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/block-coauthor.sh"
           }
         ]
+      },
+      {
+        "matcher": "EnterPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/block-enter-plan-mode.sh"
+          }
+        ]
       }
     ]
   }
