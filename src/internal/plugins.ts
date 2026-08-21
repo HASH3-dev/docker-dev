@@ -311,13 +311,9 @@ async function pruneLevel(
       continue;
     }
 
-    // Command handlers run from the compiled executable and do not belong in
-    // the host project or the Docker build context.
-    await rm(join(pluginDirectory, "commands"), {
-      recursive: true,
-      force: true,
-    });
-    await rm(join(pluginDirectory, "README.md"), { force: true });
+    // materializeAssets already filters command source files and only creates
+    // command.json manifests. README.md is also already filtered. Nothing to prune
+    // from selected plugins - they are materialized exactly as they should be.
 
     if (existsSync(join(pluginDirectory, "plugins"))) {
       await pruneLevel(

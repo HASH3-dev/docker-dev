@@ -18,6 +18,7 @@ const stateName = ".docker-dev-state.json";
 const managedLocalFilesMarker = "# >>> docker-dev managed local files >>>";
 const version = packageManifest.version;
 const selectionMarker = "# docker-dev managed plugin selection";
+const preservedLocalFiles = ["reports/ignores.json"];
 type State = { version: string; hashes: Record<string, string> };
 const hash = (data: Uint8Array) =>
   createHash("sha256").update(data).digest("hex");
@@ -93,7 +94,12 @@ function isPluginAssetIncluded(
 
     const pluginRest = tail.join("/");
 
-    if (pluginRest === "README.md" || pluginRest.startsWith("commands/")) {
+    if (pluginRest === "README.md") {
+      return false;
+    }
+
+    // Bloquear arquivos em commands/, exceto command.json (metadados necessários)
+    if (pluginRest.startsWith("commands/") && !pluginRest.endsWith("/command.json")) {
       return false;
     }
 
@@ -158,11 +164,11 @@ export async function materializeAssets(
         current = await readFile(join(directory, path));
       } catch (error) {
         if (
-          path.startsWith("plugins/") &&
           error instanceof Error &&
           "code" in error &&
           error.code === "ENOENT"
         ) {
+          // File was deleted - rebuild will recreate it
           continue;
         }
 
@@ -180,6 +186,11 @@ export async function materializeAssets(
   const hashes: Record<string, string> = {};
   for (const asset of embeddedAssets) {
     if (plan && !isPluginAssetIncluded(asset.path, plan.pluginSelections)) {
+      continue;
+    }
+
+    // Filtrar código fonte de commands/ (embutido no executável), mas manter command.json
+    if (asset.path.includes("/commands/") && !asset.path.endsWith("/command.json")) {
       continue;
     }
 
@@ -218,6 +229,15 @@ export async function materializeAssets(
       await copyFile(join(directory, "ports.env"), portsTarget);
     } catch {
       // No ports.env yet outside of setup; nothing to preserve.
+    }
+  }
+  for (const path of preservedLocalFiles) {
+    try {
+      const target = join(temporary, path);
+      await mkdir(dirname(target), { recursive: true });
+      await copyFile(join(directory, path), target);
+    } catch (error: any) {
+      if (error?.code !== "ENOENT") throw error;
     }
   }
   await writeFile(
