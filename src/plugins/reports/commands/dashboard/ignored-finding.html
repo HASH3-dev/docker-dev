@@ -1,0 +1,10 @@
+<details class="ignored-finding">
+  <summary>
+    <div><span class="severity {{severity}}">{{severity}}</span> <strong>{{title}}</strong></div>
+    <p class="ignored-comment">{{comment}}</p>
+  </summary>
+  <p class="ignored-meta">Ignorado em {{createdAt}}</p>
+  {{#if locationHtml}}<p class="location">{{{locationHtml}}}</p>{{/if}}
+  {{#if details.length}}<dl>{{#each details}}<dt>{{key}}</dt><dd>{{{valueHtml}}}</dd>{{/each}}</dl>{{/if}}
+  <form method="post" action="/ignores/{{id}}/delete"><button class="unignore" type="submit">Remover ignore</button></form>
+</details>

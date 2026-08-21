@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Security Reports</title>
+    <style>
+      :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #101316; color: #e8edf2; }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; background: radial-gradient(circle at top, #1d2936, #101316 42rem); }
+      main { max-width: 1100px; margin: auto; padding: 3rem 1.25rem 5rem; }
+      h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.5rem); }
+      h2, h3 { margin: 0; }
+      .intro, .location, .report > header p { color: #aab7c4; margin: .5rem 0 2rem; }
+      .summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: .7rem; margin-bottom: 2rem; }
+      .metric, .report, .finding, .empty, .ignored-findings { background: #171d24; border: 1px solid #2c3743; border-radius: 12px; }
+      .metric { padding: 1rem; }
+      .metric b { display: block; font-size: 1.7rem; }
+      .tabs { display: flex; gap: .5rem; overflow: auto; margin-bottom: 1rem; padding-bottom: .25rem; }
+      .tab, button { border: 1px solid #2c3743; border-radius: 8px; background: #171d24; color: #aab7c4; padding: .55rem .75rem; cursor: pointer; }
+      .tab.active { background: #263747; color: #e8edf2; border-color: #5a94bd; }
+      .count { min-width: 1.25rem; padding: .1rem .35rem; border-radius: 99px; background: #a93442; color: #fff; font-size: .75rem; font-weight: 700; text-align: center; }
+      .report { padding: 1.25rem; }
+      .report > header, .finding header { display: flex; gap: .7rem; align-items: center; justify-content: space-between; }
+      .findings { display: grid; gap: .65rem; margin-top: 1rem; }
+      .finding { padding: 1rem; }
+      .finding header { justify-content: flex-start; }
+      .location { margin: 0 0 0 auto; overflow-wrap: anywhere; }
+      .severity { font-size: .72rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; padding: .25rem .45rem; border-radius: 99px; background: #48515c; }
+      .critical { background: #742b36; } .high { background: #784825; } .medium { background: #746028; } .low { background: #285d69; }
+      dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: .55rem 1rem; margin: 1rem 0 0; }
+      dt { color: #aab7c4; } dd { margin: 0; min-width: 0; }
+      pre { overflow-x: auto; padding: .75rem; border-radius: 8px; background: #282a36; }
+      pre, code { font: .875rem/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+      /* Dracula theme for Highlight.js code blocks. */
+      .hljs { color: #f8f8f2; background: #282a36; }
+      .hljs-comment, .hljs-quote { color: #6272a4; }
+      .hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-section, .hljs-link { color: #ff79c6; }
+      .hljs-string, .hljs-doctag, .hljs-addition, .hljs-regexp, .hljs-selector-attr, .hljs-selector-pseudo { color: #f1fa8c; }
+      .hljs-number, .hljs-meta, .hljs-meta .hljs-keyword, .hljs-attribute { color: #bd93f9; }
+      .hljs-title, .hljs-title.class_, .hljs-title.function_, .hljs-function .hljs-title { color: #50fa7b; }
+      .hljs-built_in, .hljs-type, .hljs-params, .hljs-symbol, .hljs-bullet, .hljs-subst { color: #8be9fd; }
+      .hljs-variable, .hljs-template-variable, .hljs-attr, .hljs-property { color: #ffb86c; }
+      .hljs-deletion { color: #ff5555; }
+      .hljs-emphasis { font-style: italic; } .hljs-strong { font-weight: 700; }
+      .markdown > :first-child { margin-top: 0; } .markdown > :last-child { margin-bottom: 0; }
+      .markdown a, .location { color: #8fd7ff; }
+      .card-footer { display: flex; justify-content: flex-end; margin-top: 1rem; }
+      .ignore { background: #a93442; border-color: #d34e60; color: #fff; }
+      .rerun { background: #1a5f7a; border-color: #2a8fb5; color: #fff; }
+      .rerun:hover { background: #2a8fb5; }
+      .rerun:disabled { opacity: 0.5; cursor: not-allowed; }
+      .ignore-dialog { width: min(32rem, calc(100vw - 2rem)); color: #e8edf2; background: #171d24; border: 1px solid #41505d; border-radius: 12px; padding: 1.25rem; }
+      .ignore-dialog::backdrop { background: rgb(0 0 0 / 65%); }
+      .ignore-form { display: grid; gap: .65rem; }
+      .ignore-form label { color: #aab7c4; }
+      .ignore-form input { width: 100%; padding: .5rem; border: 1px solid #41505d; border-radius: 6px; color: #e8edf2; background: #101316; }
+      .ignore-form footer { display: flex; justify-content: flex-end; gap: .5rem; margin-top: .5rem; }
+      .ignored-findings { padding: 1rem; margin-top: 1rem; }
+      .ignored-findings > p { color: #aab7c4; }
+      .ignored-finding { margin-top: .65rem; border: 1px solid #41505d; border-radius: 8px; padding: .65rem; }
+      .ignored-finding summary { cursor: pointer; }
+      .ignored-comment { color: #aab7c4; margin: .5rem 0 .25rem; font-size: .9rem; }
+      .ignored-meta { color: #aab7c4; }
+      .unignore { margin-top: 1rem; }
+      .secret summary { cursor: pointer; color: #ffbd66; }
+      .warning, .error { color: #ffbd66; } .error { color: #ff9292; }
+      .empty { padding: 1rem; text-align: center; }
+      @media (max-width: 640px) { main { padding-top: 2rem; } .summary { grid-template-columns: repeat(2, 1fr); } .report > header, .finding header { align-items: flex-start; flex-wrap: wrap; } .location { margin: 0; width: 100%; } dl { grid-template-columns: 1fr; } dd { margin-bottom: .5rem; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Security reports</h1>
+      <p class="intro">{{reportCount}} relatório{{reportPlural}} disponível{{reportPlural}} · {{findingCount}} achado{{findingPlural}} ativo{{findingPlural}}</p>
+      <section class="summary" aria-label="Resumo por severidade">
+        {{#each summary}}
+          <div class="metric"><span>{{level}}</span><b>{{count}}</b></div>
+        {{/each}}
+      </section>
+      {{#if reports.length}}
+        <nav class="tabs" aria-label="Relatórios">
+          {{#each reports}}
+            <button class="tab {{#if active}}active{{/if}}" type="button" data-panel="report-{{index}}">{{title}} <span class="count">{{activeFindings.length}}</span></button>
+          {{/each}}
+        </nav>
+        {{#each reports}}
+          <section class="report" id="report-{{index}}" {{#unless active}}hidden{{/unless}}>
+            <header>
+              <div><h2>{{title}}</h2><p>{{file}}</p></div>
+              <div style="display: flex; gap: .5rem; align-items: center;">
+                {{#if scanner}}<button class="rerun" type="button" data-scanner="{{scanner}}">↻ Rerun</button>{{/if}}
+                <b>{{activeFindings.length}} achado{{activePlural}}</b>
+              </div>
+            </header>
+            {{#if warning}}<p class="warning">{{warning}}</p>{{/if}}
+            {{#if rawHtml}}<details><summary>JSON bruto</summary>{{{rawHtml}}}</details>{{/if}}
+            {{#if ignoredFindings.length}}
+              <details class="ignored-findings">
+                <summary><strong>Ignorados</strong> <span class="count">{{ignoredFindings.length}}</span></summary>
+                <p>{{ignoredFindings.length}} achado{{ignoredPlural}} revisável{{ignoredPlural}}.</p>
+                {{#each ignoredFindings}}{{> ignoredFinding}}{{/each}}
+              </details>
+            {{/if}}
+            {{#if activeFindings.length}}<div class="findings">{{#each activeFindings}}{{> finding}}{{/each}}</div>{{else}}{{#unless rawHtml}}<p class="empty">Nenhum achado ativo.</p>{{/unless}}{{/if}}
+          </section>
+        {{/each}}
+      {{else}}
+        <section class="empty"><h2>Nenhum relatório encontrado</h2></section>
+      {{/if}}
+    </main>
+    <script>
+      function activateTab(panelId) {
+        for (const item of document.querySelectorAll('.tab')) {
+          item.classList.toggle('active', item.dataset.panel === panelId);
+        }
+        for (const panel of document.querySelectorAll('.report')) {
+          panel.hidden = panel.id !== panelId;
+        }
+      }
+
+      // Ao clicar na aba, atualizar hash (prefixo 'tab:' evita scroll automático)
+      for (const tab of document.querySelectorAll('.tab')) {
+        tab.addEventListener('click', () => {
+          const panelId = tab.dataset.panel;
+          history.replaceState(null, '', '#tab:' + panelId);
+          activateTab(panelId);
+        });
+      }
+
+      // Restaurar aba ativa do hash ao carregar
+      window.addEventListener('DOMContentLoaded', () => {
+        // Priorizar hash salvo (de um submit anterior), depois hash da URL
+        const savedHash = sessionStorage.getItem('activeTab');
+        const urlHash = window.location.hash.slice(1);
+        const hash = savedHash || urlHash;
+
+        const panelId = hash.startsWith('tab:') ? hash.slice(4) : 'report-0';
+        const validPanel = document.getElementById(panelId) ? panelId : 'report-0';
+        activateTab(validPanel);
+
+        // Restaurar hash na URL se veio de sessionStorage
+        if (savedHash && !urlHash) {
+          history.replaceState(null, '', '#' + savedHash);
+        }
+        sessionStorage.removeItem('activeTab');
+
+        // Restaurar posição do scroll
+        const scrollPos = sessionStorage.getItem('scrollPos');
+        if (scrollPos) {
+          window.scrollTo(0, parseInt(scrollPos, 10));
+          sessionStorage.removeItem('scrollPos');
+        }
+      });
+
+      // Salvar aba ativa e scroll antes de submits
+      for (const form of document.querySelectorAll('form')) {
+        form.addEventListener('submit', () => {
+          const currentHash = window.location.hash.slice(1) || 'tab:report-0';
+          sessionStorage.setItem('activeTab', currentHash);
+          sessionStorage.setItem('scrollPos', window.scrollY.toString());
+        });
+      }
+
+      // Rerun scanner
+      for (const button of document.querySelectorAll('.rerun')) {
+        button.addEventListener('click', async () => {
+          const scanner = button.dataset.scanner;
+          if (!scanner) return;
+
+          button.disabled = true;
+          button.textContent = '↻ Rodando...';
+
+          try {
+            const response = await fetch(`/api/rerun/${scanner}`, { method: 'POST' });
+            if (response.ok) {
+              button.textContent = '✓ Concluído';
+              setTimeout(() => window.location.reload(), 1000);
+            } else {
+              button.textContent = '✗ Erro';
+              setTimeout(() => { button.disabled = false; button.textContent = '↻ Rerun'; }, 2000);
+            }
+          } catch (error) {
+            button.textContent = '✗ Erro';
+            setTimeout(() => { button.disabled = false; button.textContent = '↻ Rerun'; }, 2000);
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
