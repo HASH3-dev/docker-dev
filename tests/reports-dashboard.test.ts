@@ -1,8 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import {
-  parseReport,
-  renderDashboard,
-} from "../src/plugins/reports/commands/dashboard/command";
+import { parseReport, renderDashboard } from "../src/plugins/reports/commands/dashboard/command";
+import { identifyFindings } from "../src/plugins/reports/commands/reports";
 
 describe("reports dashboard", () => {
   test("parses Bearer severity buckets", () => {
@@ -11,56 +9,233 @@ describe("reports dashboard", () => {
       medium: [{ title: "Medium finding", filename: "src/medium.ts" }],
       low: [{ title: "Low finding", filename: "src/low.ts" }],
     });
-    const html = renderDashboard([report]);
 
     expect(report.findings).toHaveLength(3);
-    expect(html).toContain("3 achados");
-    expect(html).toContain('<span>high</span><b>1</b>');
-    expect(html).toContain('<span>medium</span><b>1</b>');
-    expect(html).toContain('<span>low</span><b>1</b>');
-    expect(html).toContain("High finding");
-    expect(html).toContain("src/high.ts");
+    expect(report.findings.map((finding) => finding.severity)).toEqual([
+      "high",
+      "medium",
+      "low",
+    ]);
+    expect(report.findings[0]?.location).toBe("src/high.ts");
   });
 
-  test("renders reports as tabs with finding counts", () => {
-    const html = renderDashboard([
-      {
-        file: "trivy.json",
-        title: "Trivy",
-        findings: [
-          {
-            severity: "high",
-            title: "CVE-1",
-            details: [["Description", "**Markdown**"]],
+  test("formats Bearer detail labels and parses them separately", () => {
+    const report = parseReport("bearer.json", {
+      low: [{
+        title: "Logger leak",
+        filename: "src/logger.ts",
+        documentation_url: "https://docs.example.test/rules/logger-leak",
+        cwe_ids: ["CWE-532"],
+      }],
+    });
+
+    expect(report.findings[0]?.details).toEqual([
+      ["Documentation URL", "https://docs.example.test/rules/logger-leak"],
+      ["CWE IDs", ["CWE-532"]],
+    ]);
+  });
+
+  test("extracts Semgrep metadata fields with formatted labels and normalizes values", () => {
+    const report = parseReport("semgrep.json", {
+      results: [{
+        check_id: "dockerfile.security.missing-user.missing-user",
+        path: "src/assets/Dockerfile",
+        start: { line: 35 },
+        extra: {
+          severity: "ERROR",
+          message: "Security issue description",
+          metadata: {
+            cwe: ["CWE-250: Execution with Unnecessary Privileges"],
+            category: "security",
+            technology: ["dockerfile"],
+            confidence: "HIGH",
+            owasp: ["A04:2021 - Insecure Design", "A06:2025 - Insecure Design"],
+            references: ["https://semgrep.dev/r/dockerfile.security.missing-user.missing-user"],
+            subcategory: ["audit"],
+            likelihood: "LOW",
+            impact: "MEDIUM",
+            vulnerability_class: ["Improper Authorization"],
+            shortlink: "https://sg.run/Gbvn",
           },
-        ],
-      },
-      {
-        file: "unknown.json",
-        title: "unknown",
-        findings: [],
-        raw: { safe: true },
-      },
-      {
-        file: "invalid.json",
-        title: "invalid",
-        findings: [],
-        warning: "JSON inválido",
-      },
+        },
+      }],
+    });
+
+    const finding = report.findings[0];
+    expect(finding?.severity).toBe("high");
+    expect(finding?.details.map(([key]) => key)).toEqual([
+      "Message",
+      "CWE",
+      "Category",
+      "Technology",
+      "Confidence",
+      "OWASP",
+      "References",
+      "Subcategory",
+      "Likelihood",
+      "Impact",
+      "Vulnerability class",
+      "Shortlink",
     ]);
 
-    expect(html).toContain('role="tablist"');
-    expect(html).toContain('id="tab-0"');
-    expect(html).toContain('id="tab-1"');
-    expect(html).toContain('id="report-0"');
-    expect(html).toContain('id="report-1" aria-labelledby="tab-1" hidden');
-    expect(html).toContain('class="count">1</span>');
-    expect(html.match(/class="count">0<\/span>/g)).toHaveLength(2);
-    expect(html).toContain("JSON bruto");
-    expect(html).toContain("JSON inválido");
-    expect(html).toContain('data-markdown>');
-    expect(html).toContain("https://cdn.jsdelivr.net/npm/marked/marked.min.js");
-    expect(html).toContain("https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js");
-    expect(html).toContain("DOMPurify.sanitize(marked.parse(element.textContent))");
+    expect(finding?.details.find(([key]) => key === "CWE")?.[1]).toBe(
+      "CWE-250: Execution with Unnecessary Privileges",
+    );
+    expect(finding?.details.find(([key]) => key === "Technology")?.[1]).toBe("dockerfile");
+    expect(finding?.details.find(([key]) => key === "References")?.[1]).toBe(
+      "[https://semgrep.dev/r/dockerfile.security.missing-user.missing-user](https://semgrep.dev/r/dockerfile.security.missing-user.missing-user)",
+    );
+    expect(finding?.details.find(([key]) => key === "OWASP")?.[1]).toBe(
+      "- A04:2021 - Insecure Design\n- A06:2025 - Insecure Design",
+    );
+    expect(finding?.details.find(([key]) => key === "Shortlink")?.[1]).toBe(
+      "[https://sg.run/Gbvn](https://sg.run/Gbvn)",
+    );
+  });
+
+  test("normalizes Semgrep array values correctly", () => {
+    const report = parseReport("semgrep.json", {
+      results: [{
+        check_id: "test-rule",
+        path: "test.ts",
+        start: { line: 1 },
+        extra: {
+          severity: "WARNING",
+          message: "Test",
+          metadata: {
+            references: [
+              "https://example.com/ref1",
+              "https://example.com/ref2",
+            ],
+          },
+        },
+      }],
+    });
+
+    const finding = report.findings[0];
+    expect(finding?.severity).toBe("medium");
+    expect(finding?.details.find(([key]) => key === "References")?.[1]).toBe(
+      "- [https://example.com/ref1](https://example.com/ref1)\n- [https://example.com/ref2](https://example.com/ref2)",
+    );
+  });
+
+  test("renders Semgrep Confidence, Likelihood and Impact as severity badges", () => {
+    const reports = identifyFindings([{
+      file: "semgrep.json",
+      title: "Semgrep",
+      findings: [{
+        severity: "high",
+        title: "Test finding",
+        location: "test.ts:1",
+        details: [
+          ["Confidence", "HIGH"],
+          ["Likelihood", "MEDIUM"],
+          ["Impact", "LOW"],
+        ],
+      }],
+    }]);
+
+    const html = renderDashboard(reports, [], "/workspace/project");
+
+    expect(html).toContain('<span class="severity high">high</span>');
+    expect(html).toContain('<span class="severity medium">medium</span>');
+    expect(html).toContain('<span class="severity low">low</span>');
+  });
+
+  test("uses Bearer full_filename and line_number as the finding location", () => {
+    const report = parseReport("bearer.json", {
+      low: [{
+        title: "Logger leak",
+        filename: "ignored.ts",
+        full_filename: "src/commands/update/command.ts",
+        line_number: 32,
+      }],
+    });
+
+    expect(report.findings[0]?.location).toBe("src/commands/update/command.ts:32");
+    expect(report.findings[0]?.details.map(([key]) => key)).not.toContain("full_filename");
+    expect(report.findings[0]?.details.map(([key]) => key)).not.toContain("line_number");
+  });
+
+  test("resolves relative file locations against the host project path", () => {
+    const reports = identifyFindings([{
+      file: "bearer.json",
+      title: "Bearer",
+      findings: [{ severity: "low", title: "Logger leak", location: "src/app.ts:32", details: [] }],
+    }]);
+
+    const html = renderDashboard(reports, [], "/home/jaykon/project");
+
+    expect(html).toContain("vscode://file//home/jaykon/project/src/app.ts:32");
+  });
+
+  test("assigns stable IDs to findings", () => {
+    const reports = [{
+      file: "trivy.json",
+      title: "Trivy",
+      findings: [{ severity: "high", title: "CVE-1", location: "lock.json", details: [] }],
+    }];
+
+    expect(identifyFindings(reports)[0]?.findings[0]?.id).toBe(
+      identifyFindings(reports)[0]?.findings[0]?.id,
+    );
+  });
+
+  test("renders dashboard server-side through HTML templates", () => {
+    const reports = identifyFindings([{
+      file: "semgrep.json",
+      title: "Semgrep",
+      findings: [{
+        severity: "high",
+        title: "Unsafe output",
+        location: "src/app.ts:42",
+        details: [
+          ["Message", "See https://example.test/docs\n\n```ts\nconst unsafe = true;\n```"],
+          ["Metadata", { references: ["https://example.test/rule"], enabled: true }],
+          ["Code extract", "const unsafe = true;"],
+        ],
+      }],
+    }]);
+
+    const html = renderDashboard(reports, [], "/workspace/project");
+
+    expect(html).toContain("Unsafe output");
+    expect(html).toContain("vscode://file//workspace/project/src/app.ts:42");
+    expect(html).toContain(">src/app.ts:42</a>");
+    expect(html).toContain("https://example.test/docs");
+    expect(html).toContain('class="hljs language-ts"');
+    expect(html).toContain('class="hljs language-typescript"');
+    expect(html).toContain('class="hljs language-json"');
+    expect(html).toContain('.hljs-keyword, .hljs-selector-tag');
+    expect(html).toContain('#ff79c6');
+    expect(html).toContain('class="ignore"');
+    expect(html).toContain('command="show-modal"');
+    expect(html).toContain('<dialog id="ignore-');
+    expect(html).toContain('action="/ignores"');
+    expect(html).not.toContain("/api/reports");
+  });
+
+  test("shows ignored findings first and expandable in their report tab", () => {
+    const reports = identifyFindings([{
+      file: "gitleaks.json",
+      title: "Gitleaks",
+      findings: [{
+        severity: "high",
+        title: "Credential",
+        location: "config.ts:7",
+        details: [["Secret", "do-not-display"]],
+      }],
+    }]);
+    const id = reports[0]?.findings[0]?.id ?? "";
+
+    const html = renderDashboard(reports, [{ id, comment: "Test fixture", createdAt: "2026-08-19T00:00:00.000Z" }], "/workspace/project");
+
+    expect(html).toContain('<details class="ignored-findings">');
+    expect(html).toContain('<summary><strong>Ignorados</strong> <span class="count">1</span></summary>');
+    expect(html).toContain('<details class="ignored-finding">');
+    expect(html).toContain("Test fixture");
+    expect(html).toContain("Mostrar valor sensível");
+    expect(html).toContain(`/ignores/${id}/delete`);
+    expect(html.indexOf("Ignorados")).toBeLessThan(html.indexOf("Nenhum achado ativo."));
   });
 });
