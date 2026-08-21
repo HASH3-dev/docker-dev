@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../../schemas/command.schema.json",
+  "name": "reports:dashboard",
+  "summary": "Serve live security reports locally.",
+  "help": "Serves a live dashboard on the development container port. Reports are re-read on every refresh; ignored findings and comments are saved in .docker-dev/reports/ignores.json.",
+  "options": [
+    {
+      "flags": "--port <port>",
+      "description": "Local TCP port. Uses an available port by default."
+    }
+  ],
+  "steps": [
+    {
+      "call": {
+        "function": "serveReportsDashboard"
+      }
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 {
-  "config": "p/ci",
-  "severity": ["ERROR"],
-  "metricsOff": true
+  "config": "auto",
+  "severity": ["INFO", "WARNING", "ERROR"],
+  "metricsOff": false
 }

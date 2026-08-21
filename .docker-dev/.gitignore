@@ -2,7 +2,6 @@
 docker-dev
 .docker-dev-state.json
 reports/bearer.json
-reports/dashboard.html
 reports/gitleaks.json
 reports/semgrep.json
 reports/trivy.json
