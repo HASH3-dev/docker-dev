@@ -1,5 +1,23 @@
 # Changelog
 
+# [0.10.0](https://github.com/HASH3-dev/docker-dev/compare/v0.9.0...v0.10.0) (2026-08-21)
+
+
+### Bug Fixes
+
+* dashboard rerun now works with standardized scan commands ([0accd3a](https://github.com/HASH3-dev/docker-dev/commit/0accd3add4bce1669b924689794e9da3a157b3c1))
+* preserve command.json and recreate deleted assets during rebuild ([11e5776](https://github.com/HASH3-dev/docker-dev/commit/11e5776182140cb00374afed312671f2e2630f15))
+* prevent console.log format string warning in update command ([d9a2b49](https://github.com/HASH3-dev/docker-dev/commit/d9a2b4941be82ff6feb3e0a7c7db3ab6cbb80c39))
+
+
+### Features
+
+* add Handlebars templates and renderer for live dashboard ([e1ece74](https://github.com/HASH3-dev/docker-dev/commit/e1ece741cca43e8b0407251ed55bc27f091a19f2))
+* always show Installed Version and Fixed Version in Trivy reports ([d9dbb26](https://github.com/HASH3-dev/docker-dev/commit/d9dbb2674872a6344bfc57960b68870aa0941e5f))
+* convert dashboard to live server with ignore persistence ([049d8f8](https://github.com/HASH3-dev/docker-dev/commit/049d8f8e4591e3b01a298de7d55576704ca36c35))
+* recreate .envrc symlink during rebuild ([fff8216](https://github.com/HASH3-dev/docker-dev/commit/fff82166ba7dc4679abde392861b454dada80f42))
+* split report parsers by scanner ([2a6a1f9](https://github.com/HASH3-dev/docker-dev/commit/2a6a1f93686725a277b77a8c835dcc7d06663005))
+
 # [0.9.0](https://github.com/HASH3-dev/docker-dev/compare/v0.8.2...v0.9.0) (2026-08-18)
 
 
