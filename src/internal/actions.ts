@@ -1,7 +1,8 @@
 import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { installAsdfTools } from "@lib/asdf";
 import { compose, execInDev, runPluginHook, start } from "@lib/compose";
-import { ensureProjectExecutable } from "@lib/host";
+import { ensureManagedEnvrc, ensureProjectExecutable } from "@lib/host";
 import { requireMatchingVersion } from "@lib/update";
 import { materializeAssets } from "./assets";
 import { collectSelectedPluginOutputPaths, prunePlugins } from "./plugins";
@@ -39,6 +40,7 @@ export function registerInternalActions(registry: ActionRegistry): void {
       await collectSelectedPluginOutputPaths(context.dockerDevDirectory),
     );
     await prunePlugins(context.dockerDevDirectory);
+    await ensureManagedEnvrc(context);
   });
 
   registry.register("start", async (context) => {
