@@ -260,7 +260,7 @@ describe("materializeAssets", () => {
     await materializeAssets(directory);
 
     expect(await readFile(join(directory, ".dockerignore"), "utf8")).toBe(
-      "reports/semgrep.json\nreports/bearer.json\nreports/gitleaks.json\nreports/dashboard.html\n",
+      "reports/semgrep.json\nreports/bearer.json\nreports/gitleaks.json\n",
     );
     await rm(directory, { recursive: true, force: true });
   });
@@ -276,7 +276,6 @@ describe("materializeAssets", () => {
 
     expect(await collectSelectedPluginOutputPaths(directory)).toEqual([
       "reports/bearer.json",
-      "reports/dashboard.html",
       "reports/gitleaks.json",
       "reports/semgrep.json",
       "reports/trivy.json",
@@ -306,6 +305,22 @@ describe("materializeAssets", () => {
     ) as { hashes: Record<string, string> };
     expect(state.hashes["custom-compose.yml"]).toBeUndefined();
 
+    await rm(directory, { recursive: true, force: true });
+  });
+
+  test("preserves report ignore decisions during an asset refresh", async () => {
+    const directory = "/tmp/docker-dev-report-ignores";
+    const ignores = join(directory, "reports", "ignores.json");
+    await rm(directory, { recursive: true, force: true });
+    await materializeAssets(directory);
+    await mkdir(join(directory, "reports"), { recursive: true });
+    await writeFile(ignores, '[{"id":"finding","comment":"Reviewed","createdAt":"2026-08-19T00:00:00.000Z"}]\n');
+
+    await materializeAssets(directory);
+
+    expect(await readFile(ignores, "utf8")).toBe(
+      '[{"id":"finding","comment":"Reviewed","createdAt":"2026-08-19T00:00:00.000Z"}]\n',
+    );
     await rm(directory, { recursive: true, force: true });
   });
 
@@ -397,9 +412,83 @@ describe("materializeAssets", () => {
 
     await rm(directory, { recursive: true, force: true });
   });
+
+  test("materializeAssets creates only command.json, not source files", async () => {
+    const directory = "/tmp/docker-dev-command-manifest-only";
+    await rm(directory, { recursive: true, force: true });
+
+    await materializeAssets(directory, {
+      ports: "DOCKER_DEV_PORTS=5000\n",
+      pluginSelections: new Map([
+        ["plugins/plugins.enabled", ["semgrep"]],
+      ]),
+    });
+
+    const commandJson = join(directory, "plugins", "semgrep", "commands", "semgrep", "command.json");
+    const commandTs = join(directory, "plugins", "semgrep", "commands", "semgrep", "command.ts");
+
+    expect(existsSync(commandJson)).toBe(true);
+    expect(existsSync(commandTs)).toBe(false);
+
+    const { prunePlugins } = await import("../src/internal/plugins");
+    await prunePlugins(directory);
+
+    // prunePlugins doesn't touch selected plugins - command.json remains
+    expect(existsSync(commandJson)).toBe(true);
+
+    await rm(directory, { recursive: true, force: true });
+  });
 });
 
 describe("refreshAssets action", () => {
+  test("rebuild reconciles CLI version changes without deleting user state", async () => {
+    const directory = "/tmp/docker-dev-rebuild-reconcile";
+    await rm(directory, { recursive: true, force: true });
+
+    // First materialize with plugin selection
+    await materializeAssets(directory, {
+      ports: "DOCKER_DEV_PORTS=6000\n",
+      pluginSelections: new Map([
+        ["plugins/plugins.enabled", ["semgrep", "bearer"]],
+      ]),
+    });
+
+    // Add user state
+    await mkdir(join(directory, "reports"), { recursive: true });
+    await writeFile(
+      join(directory, "reports", "ignores.json"),
+      '[{"id":"old","comment":"Reviewed","createdAt":"2026-08-19T00:00:00.000Z"}]\n',
+    );
+
+    // Modify ports.env (user configuration)
+    await writeFile(join(directory, "ports.env"), "DOCKER_DEV_PORTS=7000\n");
+
+    // Rebuild (no plan = preserve existing config, reconcile with current CLI version)
+    await materializeAssets(directory);
+    const { prunePlugins } = await import("../src/internal/plugins");
+    await prunePlugins(directory);
+
+    // New assets from current CLI should exist
+    const semgrepJson = join(directory, "plugins", "semgrep", "commands", "semgrep", "command.json");
+    const bearerJson = join(directory, "plugins", "bearer", "commands", "bearer", "command.json");
+    expect(existsSync(semgrepJson)).toBe(true);
+    expect(existsSync(bearerJson)).toBe(true);
+
+    // User state preserved
+    expect(await readFile(join(directory, "reports", "ignores.json"), "utf8")).toBe(
+      '[{"id":"old","comment":"Reviewed","createdAt":"2026-08-19T00:00:00.000Z"}]\n',
+    );
+
+    // User configuration preserved
+    expect(await readFile(join(directory, "ports.env"), "utf8")).toBe("DOCKER_DEV_PORTS=7000\n");
+
+    // Unselected plugin should not exist
+    expect(existsSync(join(directory, "plugins", "trivy"))).toBe(false);
+    expect(existsSync(join(directory, "plugins", "gitleaks"))).toBe(false);
+
+    await rm(directory, { recursive: true, force: true });
+  });
+
   test("refuses a stale .docker-dev-version", async () => {
     const project = "/tmp/docker-dev-refresh-assets-version";
     await rm(project, { recursive: true, force: true });
