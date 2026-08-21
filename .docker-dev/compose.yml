@@ -18,6 +18,8 @@ services:
       HOME: /home/dev
       ASDF_DATA_DIR: /asdf
       DOCKER_DEV_IN_CONTAINER: "1"
+      # Preserve the host path for integrations such as VS Code file URIs.
+      DOCKER_DEV_HOST_PROJECT_ROOT: ${DOCKER_DEV_PROJECT_ROOT:?DOCKER_DEV_PROJECT_ROOT must be set by dev.sh}
       LOCAL_UID: ${LOCAL_UID:-1000}
       LOCAL_GID: ${LOCAL_GID:-1000}
       TRIVY_SEVERITY: ${TRIVY_SEVERITY:-HIGH,CRITICAL}

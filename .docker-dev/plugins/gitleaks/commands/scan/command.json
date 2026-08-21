@@ -1,0 +1,22 @@
+{
+  "$schema": "../../../../schemas/command.schema.json",
+  "name": "gitleaks:scan",
+  "args": "[path]",
+  "options": [
+    {
+      "flags": "--no-fail",
+      "description": "Write report without failing when findings are detected."
+    }
+  ],
+  "summary": "Scan a project path for hardcoded secrets with Gitleaks.",
+  "help": "Scans the selected project path inside the development container. The default path is the project root. Writes a JSON report to .docker-dev/reports/gitleaks.json and exits with a non-zero status when Gitleaks finds leaks.",
+  "output": { "file": "reports/gitleaks.json" },
+  "steps": [
+    {
+      "call": {
+        "function": "scanGitleaksPath",
+        "args": ["$@"]
+      }
+    }
+  ]
+}
