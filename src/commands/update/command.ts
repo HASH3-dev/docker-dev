@@ -30,7 +30,6 @@ export function register(registry: ActionRegistry): void {
 
     if (list) {
       console.log(
-        "%s",
         (await releases())
           .map((release) =>
             release.replace(/^v/, "") === packageManifest.version

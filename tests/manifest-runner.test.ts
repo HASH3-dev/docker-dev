@@ -424,8 +424,8 @@ describe("materializeAssets", () => {
       ]),
     });
 
-    const commandJson = join(directory, "plugins", "semgrep", "commands", "semgrep", "command.json");
-    const commandTs = join(directory, "plugins", "semgrep", "commands", "semgrep", "command.ts");
+    const commandJson = join(directory, "plugins", "semgrep", "commands", "scan", "command.json");
+    const commandTs = join(directory, "plugins", "semgrep", "commands", "scan", "command.ts");
 
     expect(existsSync(commandJson)).toBe(true);
     expect(existsSync(commandTs)).toBe(false);
@@ -469,8 +469,8 @@ describe("refreshAssets action", () => {
     await prunePlugins(directory);
 
     // New assets from current CLI should exist
-    const semgrepJson = join(directory, "plugins", "semgrep", "commands", "semgrep", "command.json");
-    const bearerJson = join(directory, "plugins", "bearer", "commands", "bearer", "command.json");
+    const semgrepJson = join(directory, "plugins", "semgrep", "commands", "scan", "command.json");
+    const bearerJson = join(directory, "plugins", "bearer", "commands", "scan", "command.json");
     expect(existsSync(semgrepJson)).toBe(true);
     expect(existsSync(bearerJson)).toBe(true);
 
