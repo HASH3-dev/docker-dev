@@ -125,6 +125,7 @@ async function canAdopt(directory: string): Promise<boolean> {
 export async function materializeAssets(
   directory: string,
   plan?: AssetPlan,
+  force = false,
 ): Promise<void> {
   const configPaths = pluginConfigPaths();
   const isConfiguration = (path: string) =>
@@ -175,7 +176,7 @@ export async function materializeAssets(
         throw error;
       }
 
-      if (hash(current) !== expected)
+      if (!force && hash(current) !== expected)
         throw new Error(
           `Refusing to overwrite managed asset modified locally: ${path}`,
         );

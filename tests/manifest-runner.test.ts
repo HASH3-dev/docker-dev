@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { tmpdir } from "node:os";
 import {
   parseCommandManifest,
   parsePluginManifest,
@@ -372,6 +373,25 @@ describe("materializeAssets", () => {
     );
 
     await rm(directory, { recursive: true, force: true });
+  });
+
+  test("force replaces locally modified managed assets", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "docker-dev-force-materialize-"));
+    try {
+      await materializeAssets(directory);
+      await writeFile(join(directory, "Dockerfile"), "FROM scratch\n");
+
+      await expect(materializeAssets(directory)).rejects.toThrow(
+        "Refusing to overwrite managed asset modified locally: Dockerfile",
+      );
+      await materializeAssets(directory, undefined, true);
+
+      expect(await readFile(join(directory, "Dockerfile"), "utf8")).toContain(
+        "FROM golang:",
+      );
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 
   test("applies a plan atomically: ports, plugin selection and pruning", async () => {
