@@ -1,9 +1,8 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import { installAsdfTools } from "@lib/asdf";
 import { compose, execInDev, runPluginHook, start } from "@lib/compose";
 import { ensureManagedEnvrc, ensureProjectExecutable } from "@lib/host";
 import { requireMatchingVersion } from "@lib/update";
+import { existsSync } from "node:fs";
 import { materializeAssets } from "./assets";
 import { collectSelectedPluginOutputPaths, prunePlugins } from "./plugins";
 import type { ActionRegistry } from "./registry";
@@ -34,7 +33,11 @@ export function registerInternalActions(registry: ActionRegistry): void {
 
   registry.register("refreshAssets", async (context) => {
     await requireMatchingVersion(context.projectRoot);
-    await materializeAssets(context.dockerDevDirectory);
+    await materializeAssets(
+      context.dockerDevDirectory,
+      undefined,
+      context.commandOptions.force === true,
+    );
     await ensureProjectExecutable(
       context.dockerDevDirectory,
       await collectSelectedPluginOutputPaths(context.dockerDevDirectory),

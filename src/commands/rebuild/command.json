@@ -2,7 +2,13 @@
   "$schema": "../../schemas/command.schema.json",
   "name": "rebuild",
   "summary": "Rebuild and recreate the development container.",
-  "help": "Rebuild and recreate the development container.",
+  "help": "Rebuild and recreate the development container. Use --force to replace locally modified managed assets with the version bundled in docker-dev.",
+  "options": [
+    {
+      "flags": "--force",
+      "description": "Replace locally modified managed assets during refresh."
+    }
+  ],
   "steps": [
     {
       "call": {
