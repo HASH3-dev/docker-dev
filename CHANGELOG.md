@@ -1,5 +1,18 @@
 # Changelog
 
+# [0.11.0](https://github.com/HASH3-dev/docker-dev/compare/v0.10.0...v0.11.0) (2026-08-24)
+
+
+### Bug Fixes
+
+* **reports:** rerun Trivy IaC and image scans ([ffd00df](https://github.com/HASH3-dev/docker-dev/commit/ffd00dfe78e27ab659b1ba81fa0fb25603d16fde))
+
+
+### Features
+
+* **rebuild:** allow forcing managed asset refresh ([68ec370](https://github.com/HASH3-dev/docker-dev/commit/68ec370380ebcb5d551eed8972669a1a3edc9765))
+* **trivy:** add IaC and registry image scans ([2240b9c](https://github.com/HASH3-dev/docker-dev/commit/2240b9cddb31409953cbb7b3a70a6a249802c6a7))
+
 # [0.10.0](https://github.com/HASH3-dev/docker-dev/compare/v0.9.0...v0.10.0) (2026-08-21)
 
 
