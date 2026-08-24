@@ -2,7 +2,7 @@ ARG ASDF_VERSION=v0.20.0
 
 # Build the official asdf CLI from source so the image works on both AMD64 and
 # ARM64 (Linux, WSL and Docker Desktop on Apple Silicon).
-FROM golang:1.26.3-bookworm AS asdf-builder
+FROM golang:1.27.0-alpine AS asdf-builder
 ARG ASDF_VERSION
 RUN go install github.com/asdf-vm/asdf/cmd/asdf@${ASDF_VERSION}
 
