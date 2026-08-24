@@ -53,11 +53,13 @@ async function findingExists(
   );
 }
 
-const scannerActions: Record<string, string> = {
-  bearer: "scanBearerPath",
-  semgrep: "scanSemgrepPath",
-  gitleaks: "scanGitleaksPath",
-  trivy: "scanTrivyPath",
+export const scannerActions: Record<string, { plugin: string; action: string; command: string }> = {
+  bearer: { plugin: "bearer", action: "scanBearerPath", command: "scan" },
+  semgrep: { plugin: "semgrep", action: "scanSemgrepPath", command: "scan" },
+  gitleaks: { plugin: "gitleaks", action: "scanGitleaksPath", command: "scan" },
+  trivy: { plugin: "trivy", action: "scanTrivyPath", command: "scan" },
+  "trivy-iac": { plugin: "trivy", action: "scanTrivyIacPath", command: "scan-iac" },
+  "trivy-images": { plugin: "trivy", action: "scanTrivyImages", command: "scan-images" },
 };
 
 export function register(registry: ActionRegistry): void {
@@ -170,26 +172,26 @@ export function register(registry: ActionRegistry): void {
           );
           return redirectHome();
         }
-        const rerunMatch = /^\/api\/rerun\/([a-z]+)$/.exec(url.pathname);
+        const rerunMatch = /^\/api\/rerun\/([a-z][a-z-]*)$/.exec(url.pathname);
         if (request.method === "POST" && rerunMatch) {
           const scanner = rerunMatch[1];
           if (!scanner) return json({ error: "Scanner inválido." }, 400);
-          const actionName = scannerActions[scanner];
-          if (!actionName) return json({ error: "Scanner inválido." }, 400);
+          const scannerAction = scannerActions[scanner];
+          if (!scannerAction) return json({ error: "Scanner inválido." }, 400);
 
           try {
             const manifestPath = join(
               context.dockerDevDirectory,
               "plugins",
-              scanner,
+              scannerAction.plugin,
               "commands",
-              "scan",
+              scannerAction.command,
               "command.json",
             );
             const manifestContent = await readFile(manifestPath, "utf8");
             const manifest = parseCommandManifest(JSON.parse(manifestContent));
 
-            const handler = registry.get(actionName);
+            const handler = registry.get(scannerAction.action);
             await handler(context, [], manifest);
             return json({ ok: true });
           } catch (error) {

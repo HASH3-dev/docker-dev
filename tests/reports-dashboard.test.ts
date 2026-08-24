@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { parseReport, renderDashboard } from "../src/plugins/reports/commands/dashboard/command";
+import { parseReport, renderDashboard, scannerActions } from "../src/plugins/reports/commands/dashboard/command";
 import { identifyFindings } from "../src/plugins/reports/commands/reports";
 
 describe("reports dashboard", () => {
@@ -167,6 +167,53 @@ describe("reports dashboard", () => {
     const html = renderDashboard(reports, [], "/home/jaykon/project");
 
     expect(html).toContain("vscode://file//home/jaykon/project/src/app.ts:32");
+  });
+
+  test("parses Trivy IaC misconfigurations", () => {
+    const report = parseReport("trivy-iac.json", {
+      Results: [{
+        Target: "Dockerfile",
+        Misconfigurations: [{
+          ID: "DS002",
+          Severity: "HIGH",
+          Title: "Image user should not be root",
+          Message: "Specify a non-root USER instruction.",
+          Resolution: "Add USER app before CMD.",
+          PrimaryURL: "https://avd.aquasec.com/misconfig/ds002",
+        }],
+      }],
+    });
+
+    expect(report.title).toBe("Trivy IaC");
+    expect(report.findings).toEqual([{
+      severity: "high",
+      title: "DS002: Image user should not be root",
+      location: "Dockerfile",
+      details: [
+        ["Message", "Specify a non-root USER instruction."],
+        ["Resolution", "Add USER app before CMD."],
+        ["Primary URL", "https://avd.aquasec.com/misconfig/ds002"],
+      ],
+    }]);
+  });
+
+  test("maps Trivy IaC and image reports to their commands", () => {
+    expect(/^\/api\/rerun\/([a-z][a-z-]*)$/.exec("/api/rerun/trivy-iac")?.[1]).toBe(
+      "trivy-iac",
+    );
+    expect(/^\/api\/rerun\/([a-z][a-z-]*)$/.exec("/api/rerun/trivy-images")?.[1]).toBe(
+      "trivy-images",
+    );
+    expect(scannerActions["trivy-iac"]).toEqual({
+      plugin: "trivy",
+      action: "scanTrivyIacPath",
+      command: "scan-iac",
+    });
+    expect(scannerActions["trivy-images"]).toEqual({
+      plugin: "trivy",
+      action: "scanTrivyImages",
+      command: "scan-images",
+    });
   });
 
   test("assigns stable IDs to findings", () => {
