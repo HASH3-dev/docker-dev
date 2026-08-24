@@ -19,6 +19,12 @@ export function parseReport(file: string, value: unknown): Report {
   if (file === "trivy.json" && value && typeof value === "object") {
     return { file, title: "Trivy", findings: parseTrivy(value) };
   }
+  if (file === "trivy-iac.json" && value && typeof value === "object") {
+    return { file, title: "Trivy IaC", findings: parseTrivy(value) };
+  }
+  if (file === "trivy-images.json" && value && typeof value === "object") {
+    return { file, title: "Trivy Images", findings: parseTrivy(value) };
+  }
   if (file === "semgrep.json" && value && typeof value === "object") {
     return { file, title: "Semgrep", findings: parseSemgrep(value) };
   }

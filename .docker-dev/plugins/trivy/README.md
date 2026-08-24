@@ -1,12 +1,21 @@
 # trivy
 
-Este é o plugin pai de segurança de dependências. Use `docker-dev trivy:scan [path]`
-para escanear um caminho e gerar JSON em `.docker-dev/reports/trivy.json`. Ele
-instala o Trivy e fornece a interface estável para seus adaptadores:
+Este é o plugin pai de segurança. Use `docker-dev trivy:scan [path]` para
+escanear vulnerabilidades de dependências, `docker-dev trivy:scan-iac [path]`
+para escanear Infrastructure as Code, e `docker-dev trivy:scan-images [path]`
+para escanear vulnerabilidades nas imagens de registry referenciadas por
+Dockerfiles e Docker Compose. Os comandos geram JSON em
+`.docker-dev/reports/trivy.json`, `.docker-dev/reports/trivy-iac.json` e
+`.docker-dev/reports/trivy-images.json`. O scan de imagens não monta nem acessa
+o socket Docker.
+
+Ele instala o Trivy e fornece a interface estável para seus adaptadores:
 
 ```bash
 docker-dev-trivy-gate scan-lock <lockfile>
 docker-dev-trivy-gate scan-path <path> <output>
+docker-dev-trivy-gate scan-iac <path> <output>
+docker-dev-trivy-gate scan-image <image> <output>
 ```
 
 `scan-lock` é o contrato interno chamado pelo adaptador depois de gerar uma resolução

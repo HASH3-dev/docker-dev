@@ -1,0 +1,22 @@
+{
+  "$schema": "../../../../schemas/command.schema.json",
+  "name": "trivy:scan-images",
+  "args": "[path]",
+  "options": [
+    {
+      "flags": "--no-fail",
+      "description": "Write report without failing when findings are detected."
+    }
+  ],
+  "summary": "Scan images referenced by project Dockerfiles and Compose files with Trivy.",
+  "help": "Finds images referenced by Dockerfiles and Docker Compose files in the selected project path, then scans the referenced registry images for vulnerabilities. The default path is the project root. Writes a JSON report to .docker-dev/reports/trivy-images.json and exits with a non-zero status when Trivy finds vulnerabilities at the configured severity. It does not mount or access the Docker socket.",
+  "output": { "file": "reports/trivy-images.json" },
+  "steps": [
+    {
+      "call": {
+        "function": "scanTrivyImages",
+        "args": ["$@"]
+      }
+    }
+  ]
+}
