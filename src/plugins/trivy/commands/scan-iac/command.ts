@@ -1,0 +1,35 @@
+import { mkdir } from "node:fs/promises";
+import { dirname, join, relative } from "node:path";
+import manifest from "./command.json";
+import type { ActionRegistry } from "@internal/registry";
+import { execInDev, start } from "@lib/compose";
+
+export default manifest;
+
+export function register(registry: ActionRegistry): void {
+  registry.register("scanTrivyIacPath", async (context, args, command) => {
+    const outputPath = command?.output
+      ? join(context.dockerDevDirectory, command.output.file)
+      : undefined;
+    if (!outputPath) {
+      throw new Error("The trivy IaC scan command declares no output file.");
+    }
+
+    await mkdir(dirname(outputPath), { recursive: true });
+    const containerOutputPath = `/workspace/${relative(context.projectRoot, outputPath)}`;
+
+    await start(context);
+
+    await execInDev(context, [
+      "--workdir",
+      "/workspace",
+      "dev",
+      "docker-dev-trivy-gate",
+      "scan-iac",
+      ".",
+      ...args,
+      containerOutputPath,
+      context.commandOptions.fail === false ? "--exit-code=0" : "--exit-code=1",
+    ]);
+  });
+}

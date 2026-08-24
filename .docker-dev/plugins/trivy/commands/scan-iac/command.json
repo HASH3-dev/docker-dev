@@ -1,0 +1,22 @@
+{
+  "$schema": "../../../../schemas/command.schema.json",
+  "name": "trivy:scan-iac",
+  "args": "[path]",
+  "options": [
+    {
+      "flags": "--no-fail",
+      "description": "Write report without failing when findings are detected."
+    }
+  ],
+  "summary": "Scan Infrastructure as Code for security misconfigurations with Trivy.",
+  "help": "Scans Infrastructure as Code in the selected project path, including Dockerfiles, Docker Compose, Kubernetes and Terraform configuration recognized by Trivy. The default path is the project root. Writes a JSON report to .docker-dev/reports/trivy-iac.json and exits with a non-zero status when Trivy finds misconfigurations at the configured severity.",
+  "output": { "file": "reports/trivy-iac.json" },
+  "steps": [
+    {
+      "call": {
+        "function": "scanTrivyIacPath",
+        "args": ["$@"]
+      }
+    }
+  ]
+}

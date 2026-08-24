@@ -66,6 +66,96 @@ describe("command manifests", () => {
     ).not.toThrow();
   });
 
+  test("includes the Trivy IaC scan command", async () => {
+    const command = JSON.parse(
+      await readFile(
+        join(
+          import.meta.dir,
+          "..",
+          "src",
+          "plugins",
+          "trivy",
+          "commands",
+          "scan-iac",
+          "command.json",
+        ),
+        "utf8",
+      ),
+    );
+
+    expect(command.name).toBe("trivy:scan-iac");
+    expect(command.output.file).toBe("reports/trivy-iac.json");
+    expect(command.steps[0].call.function).toBe("scanTrivyIacPath");
+  });
+
+  test("Trivy gate supports IaC and registry image scans", async () => {
+    const gate = await readFile(
+      join(
+        import.meta.dir,
+        "..",
+        "src",
+        "plugins",
+        "trivy",
+        "bin",
+        "docker-dev-trivy-gate",
+      ),
+      "utf8",
+    );
+
+    expect(gate).toContain("scan-iac <path> <output>");
+    expect(gate).toContain('trivy config --quiet --severity "$trivy_severity"');
+    expect(gate).toContain("scan-image <image> <output>");
+    expect(gate).toContain('trivy image --quiet --severity "$trivy_severity"');
+  });
+
+  test("includes the Trivy image scan command", async () => {
+    const command = JSON.parse(
+      await readFile(
+        join(
+          import.meta.dir,
+          "..",
+          "src",
+          "plugins",
+          "trivy",
+          "commands",
+          "scan-images",
+          "command.json",
+        ),
+        "utf8",
+      ),
+    );
+
+    expect(command.name).toBe("trivy:scan-images");
+    expect(command.output.file).toBe("reports/trivy-images.json");
+    expect(command.steps[0].call.function).toBe("scanTrivyImages");
+  });
+
+  test("finds unique static image references", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "docker-dev-trivy-image-references-"));
+    try {
+      await mkdir(join(directory, "services"), { recursive: true });
+      await writeFile(
+        join(directory, "Dockerfile"),
+        "FROM --platform=linux/amd64 golang:1.26.3-bookworm AS build\nFROM debian:bookworm-slim\n",
+      );
+      await writeFile(
+        join(directory, "services", "compose.yaml"),
+        "services:\n  app:\n    image: ghcr.io/example/app:1.0\n  proxy:\n    image: debian:bookworm-slim\n",
+      );
+
+      const { findImageReferences } = await import(
+        "../src/plugins/trivy/commands/scan-images/command"
+      );
+      expect(await findImageReferences(directory)).toEqual([
+        "debian:bookworm-slim",
+        "ghcr.io/example/app:1.0",
+        "golang:1.26.3-bookworm",
+      ]);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
   test("rejects command output path traversal", () => {
     expect(() =>
       parseCommandManifest({
@@ -279,6 +369,8 @@ describe("materializeAssets", () => {
       "reports/bearer.json",
       "reports/gitleaks.json",
       "reports/semgrep.json",
+      "reports/trivy-iac.json",
+      "reports/trivy-images.json",
       "reports/trivy.json",
     ]);
     await rm(directory, { recursive: true, force: true });
