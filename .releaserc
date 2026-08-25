@@ -19,11 +19,16 @@
     ],
     ["@semantic-release/npm", { "npmPublish": false }],
     ["@semantic-release/changelog", { "changelogTitle": "# Changelog" }],
-    ["@semantic-release/exec", { "prepareCmd": "bun run build:all" }],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "bun run build:all && printf '%s\\n' ${nextRelease.version} > .docker-dev-version"
+      }
+    ],
     [
       "@semantic-release/git",
       {
-        "assets": ["package.json", "CHANGELOG.md"],
+        "assets": ["package.json", "CHANGELOG.md", ".docker-dev-version"],
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ],
