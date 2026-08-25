@@ -27,9 +27,7 @@ acoplar o núcleo a uma stack.
 
 ### Veja o gate em ação
 
-<video src="./docs/assets/trivy-package-install-block.webm" controls muted playsinline>
-  Seu navegador não suporta vídeo HTML5. [Baixe a demonstração](./docs/assets/trivy-package-install-block.webm).
-</video>
+![Demonstração do Trivy bloqueando a instalação de um pacote](./docs/assets/trivy-package-install-block.gif)
 
 *Na primeira execução, o comando pode levar um tempo considerável para preparar
 os dados do scanner. Nas execuções seguintes, com os dados em cache, ele é bem
