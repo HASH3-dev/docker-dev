@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.1](https://github.com/HASH3-dev/docker-dev/compare/v0.11.0...v0.11.1) (2026-08-26)
+
+
+### Bug Fixes
+
+* install 1password-cli from arch-specific apt repo ([d2db32f](https://github.com/HASH3-dev/docker-dev/commit/d2db32f2d6e91238703f4b2d0e93b507e62d1d2b))
+
 # [0.11.0](https://github.com/HASH3-dev/docker-dev/compare/v0.10.0...v0.11.0) (2026-08-24)
 
 
