@@ -8,6 +8,7 @@ const wrapper = join(
   "../src/plugins/1password/bin/docker-dev-secrets",
 );
 const directories: string[] = [];
+const environmentId = "blgexucrwfr2dtsxe2q4uu7dp4";
 
 afterEach(async () => {
   await Promise.all(
@@ -22,6 +23,7 @@ async function setup(options: {
   whoami?: boolean;
   add?: boolean;
   signin?: boolean;
+  command?: string[];
 }) {
   const directory = await mkdtemp(join(tmpdir(), "docker-dev-1password-"));
   directories.push(directory);
@@ -46,7 +48,9 @@ esac
   await chmod(join(bin, "op"), 0o755);
 
   return {
-    command: [wrapper, envFile, "echo", "ok"],
+    command:
+      options.command ??
+      [wrapper, "--env-file", envFile, "echo", "ok"],
     environment: {
       ...process.env,
       PATH: `${bin}:${process.env.PATH}`,
@@ -56,6 +60,7 @@ esac
       FAKE_ADD: options.add ? "1" : "0",
       FAKE_SIGNIN: options.signin ? "1" : "0",
     },
+    envFile,
     log,
   };
 }
@@ -83,9 +88,21 @@ async function logCalls(path: string): Promise<string[]> {
 }
 
 describe("docker-dev-secrets", () => {
+  test("rejects when neither env-file nor environment is provided", async () => {
+    const fixture = await setup({ accounts: "[]" });
+    const result = await run([wrapper, "echo", "ok"], fixture.environment);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Provide --env-file");
+    expect(result.stderr).toContain("--environment");
+  });
+
   test("rejects a missing env file", async () => {
     const fixture = await setup({ accounts: "[]" });
-    const result = await run([wrapper], fixture.environment);
+    const result = await run(
+      [wrapper, "--env-file", "/missing/.env", "echo", "ok"],
+      fixture.environment,
+    );
 
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("env file not found");
@@ -98,7 +115,45 @@ describe("docker-dev-secrets", () => {
     expect(await logCalls(fixture.log)).toEqual([
       "account list --format json",
       "whoami",
-      `run --env-file=${fixture.command[1]} --no-masking -- echo ok`,
+      `run --env-file=${fixture.envFile} --no-masking -- echo ok`,
+    ]);
+  });
+
+  test("loads secrets from a 1Password Environment", async () => {
+    const fixture = await setup({
+      accounts: '[{"url":"example"}]',
+      whoami: true,
+      command: [wrapper, "--environment", environmentId, "echo", "ok"],
+    });
+
+    expect((await run(fixture.command, fixture.environment)).exitCode).toBe(0);
+    expect(await logCalls(fixture.log)).toEqual([
+      "account list --format json",
+      "whoami",
+      `run --environment ${environmentId} --no-masking -- echo ok`,
+    ]);
+  });
+
+  test("passes both environment and env-file to op run", async () => {
+    const fixture = await setup({
+      accounts: '[{"url":"example"}]',
+      whoami: true,
+    });
+    const command = [
+      wrapper,
+      "--environment",
+      environmentId,
+      "--env-file",
+      fixture.envFile,
+      "echo",
+      "ok",
+    ];
+
+    expect((await run(command, fixture.environment)).exitCode).toBe(0);
+    expect(await logCalls(fixture.log)).toEqual([
+      "account list --format json",
+      "whoami",
+      `run --environment ${environmentId} --env-file=${fixture.envFile} --no-masking -- echo ok`,
     ]);
   });
 
@@ -140,7 +195,7 @@ describe("docker-dev-secrets", () => {
       "account list --format json",
       "account add",
       "signin -f",
-      `run --env-file=${fixture.command[1]} --no-masking -- echo ok`,
+      `run --env-file=${fixture.envFile} --no-masking -- echo ok`,
     ]);
   });
 

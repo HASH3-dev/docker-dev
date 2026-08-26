@@ -26,7 +26,7 @@ describe("command options", () => {
     const result = await run("1password:secrets", "echo", "--typo");
 
     expect(result.exitCode).toBe(1);
-    expect(result.stderr).toContain("Provide --env-file <path>.");
+    expect(result.stderr).toContain("Provide --env-file <path> and/or --environment <id>.");
     expect(result.stderr).not.toContain("unknown option '--typo'");
   });
 

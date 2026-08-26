@@ -8,23 +8,35 @@ export default manifest;
 export function register(registry: ActionRegistry): void {
   registry.register("runSecretsWrapper", async (context, args) => {
     const envFile = context.commandOptions.envFile;
+    const environment = context.commandOptions.environment;
 
-    if (typeof envFile !== "string" || !envFile) {
-      throw new Error("Provide --env-file <path>.");
+    const hasEnvFile = typeof envFile === "string" && envFile.length > 0;
+    const hasEnvironment = typeof environment === "string" && environment.length > 0;
+
+    if (!hasEnvFile && !hasEnvironment) {
+      throw new Error("Provide --env-file <path> and/or --environment <id>.");
     }
 
-    const relativePath = relative(context.projectRoot, resolve(context.projectRoot, envFile));
+    const wrapperArgs = ["dev", "docker-dev-secrets"];
 
-    if (!relativePath || relativePath.startsWith("..") || relativePath.startsWith("/")) {
-      throw new Error("The env file must stay within the project.");
+    if (hasEnvironment) {
+      wrapperArgs.push("--environment", environment);
+    }
+
+    if (hasEnvFile) {
+      const relativePath = relative(
+        context.projectRoot,
+        resolve(context.projectRoot, envFile),
+      );
+
+      if (!relativePath || relativePath.startsWith("..") || relativePath.startsWith("/")) {
+        throw new Error("The env file must stay within the project.");
+      }
+
+      wrapperArgs.push("--env-file", `/workspace/${relativePath}`);
     }
 
     await start(context);
-    await execInDev(context, [
-      "dev",
-      "docker-dev-secrets",
-      `/workspace/${relativePath}`,
-      ...args,
-    ]);
+    await execInDev(context, [...wrapperArgs, ...args]);
   });
 }
