@@ -2,6 +2,16 @@
 set -euo pipefail
 
 readonly trivy_severity="${TRIVY_SEVERITY:-HIGH,CRITICAL}"
+readonly project_ignorefile="/workspace/.trivyignore"
+
+# Trivy loads .trivyignore from the process working directory. Lockfile scans
+# run inside a temporary resolution directory, so pass the project file.
+append_ignorefile() {
+  local -n options_ref="$1"
+  if [[ -z "${TRIVY_IGNOREFILE:-}" && -f "$project_ignorefile" ]]; then
+    options_ref+=(--ignorefile "$project_ignorefile")
+  fi
+}
 
 scan_target() {
   local target="$1"
@@ -12,6 +22,7 @@ scan_target() {
   echo "Security gate: scanning with Trivy (${trivy_severity})..." >&2
   local -a options=(fs --quiet --scanners vuln --severity "$trivy_severity" --exit-code "$exit_code")
   [[ -n "$output" ]] && options+=(--format json --output "$output")
+  append_ignorefile options
   trivy "${options[@]}" "$target"
 }
 
@@ -22,7 +33,9 @@ scan_iac() {
   [[ "$exit_code" =~ ^[01]$ ]] || { echo "Trivy gate exit code must be 0 or 1." >&2; return 2; }
   [[ -d "$target" ]] || { echo "Trivy IaC target is not a directory: $target" >&2; return 2; }
   echo "Security scan: checking Infrastructure as Code with Trivy (${trivy_severity})..." >&2
-  trivy config --quiet --severity "$trivy_severity" --exit-code "$exit_code" --format json --output "$output" "$target"
+  local -a options=(config --quiet --severity "$trivy_severity" --exit-code "$exit_code" --format json --output "$output")
+  append_ignorefile options
+  trivy "${options[@]}" "$target"
 }
 
 scan_image() {
@@ -31,7 +44,9 @@ scan_image() {
   local exit_code="${3:-1}"
   [[ "$exit_code" =~ ^[01]$ ]] || { echo "Trivy gate exit code must be 0 or 1." >&2; return 2; }
   echo "Security scan: checking image ${image} with Trivy (${trivy_severity})..." >&2
-  trivy image --quiet --severity "$trivy_severity" --exit-code "$exit_code" --format json --output "$output" "$image"
+  local -a options=(image --quiet --severity "$trivy_severity" --exit-code "$exit_code" --format json --output "$output")
+  append_ignorefile options
+  trivy "${options[@]}" "$image"
 }
 
 usage() {
