@@ -22,6 +22,11 @@ docker-dev-trivy-gate scan-image <image> <output>
 temporária, completa e sem scripts de pacote. Se o gate retornar código diferente
 de zero, o adaptador não pode executar a instalação real.
 
+O Trivy lê `.trivyignore` só do diretório em que o processo está rodando. O gate
+passa `--ignorefile /workspace/.trivyignore` quando esse arquivo existe na raiz
+do projeto, inclusive nos scans feitos a partir de um diretório temporário. Se
+`TRIVY_IGNOREFILE` já estiver definido, o gate preserva esse valor.
+
 Os subplugins habilitados ficam em `plugins.enabled`. Os adaptadores Bun, npm,
 pnpm, Yarn e uv usam esse contrato sem precisar conhecer instalação ou opções do
 Trivy.
