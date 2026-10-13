@@ -103,9 +103,11 @@ describe("command manifests", () => {
     );
 
     expect(gate).toContain("scan-iac <path> <output>");
-    expect(gate).toContain('trivy config --quiet --severity "$trivy_severity"');
+    expect(gate).toContain('config --quiet --severity "$trivy_severity"');
     expect(gate).toContain("scan-image <image> <output>");
-    expect(gate).toContain('trivy image --quiet --severity "$trivy_severity"');
+    expect(gate).toContain('image --quiet --severity "$trivy_severity"');
+    expect(gate).toContain('readonly project_ignorefile="/workspace/.trivyignore"');
+    expect(gate).toContain('--ignorefile "$project_ignorefile"');
   });
 
   test("includes the Trivy image scan command", async () => {
