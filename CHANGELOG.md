@@ -1,5 +1,12 @@
 # Changelog
 
+# [0.12.0](https://github.com/HASH3-dev/docker-dev/compare/v0.11.1...v0.12.0) (2026-10-13)
+
+
+### Features
+
+* load the project .trivyignore during trivy scans ([f185a0f](https://github.com/HASH3-dev/docker-dev/commit/f185a0f232461fbb28caef1c96d5c50b6d856992))
+
 ## [0.11.1](https://github.com/HASH3-dev/docker-dev/compare/v0.11.0...v0.11.1) (2026-08-26)
 
 
